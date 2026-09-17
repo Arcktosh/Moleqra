@@ -166,3 +166,65 @@ CREATE TABLE IF NOT EXISTS supplier_test_orders (
   CONSTRAINT chk_supplier_test_orders_packaging CHECK (packaging_condition IS NULL OR packaging_condition BETWEEN 1 AND 5)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS procurement_scenarios (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  supplier_product_id BIGINT UNSIGNED NOT NULL,
+  scenario_name VARCHAR(120) NOT NULL DEFAULT 'Current quote',
+  quantity INT UNSIGNED NOT NULL,
+  unit_price DECIMAL(14,4) NOT NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'ZAR',
+  fx_to_base DECIMAL(14,6) NOT NULL DEFAULT 1.000000,
+  shipping_cost DECIMAL(14,2) NOT NULL DEFAULT 0,
+  duty_tax_cost DECIMAL(14,2) NOT NULL DEFAULT 0,
+  lab_testing_cost DECIMAL(14,2) NOT NULL DEFAULT 0,
+  packaging_label_cost DECIMAL(14,2) NOT NULL DEFAULT 0,
+  payment_fee_cost DECIMAL(14,2) NOT NULL DEFAULT 0,
+  other_cost DECIMAL(14,2) NOT NULL DEFAULT 0,
+  quoted_at DATE NULL,
+  valid_until DATE NULL,
+  notes TEXT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_procurement_scenarios_offer (supplier_product_id),
+  INDEX idx_procurement_scenarios_validity (valid_until),
+  CONSTRAINT fk_procurement_scenarios_offer FOREIGN KEY (supplier_product_id) REFERENCES supplier_products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS product_market_reviews (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  product_id BIGINT UNSIGNED NOT NULL,
+  market_code VARCHAR(12) NOT NULL,
+  review_status VARCHAR(50) NOT NULL DEFAULT 'Review required',
+  listing_hold TINYINT(1) NOT NULL DEFAULT 1,
+  review_reference VARCHAR(180) NULL,
+  evidence_notes TEXT NULL,
+  reviewed_by BIGINT UNSIGNED NULL,
+  reviewed_at DATE NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_product_market_reviews (product_id, market_code),
+  INDEX idx_product_market_reviews_status (market_code, review_status, listing_hold),
+  CONSTRAINT fk_product_market_reviews_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+  CONSTRAINT fk_product_market_reviews_admin FOREIGN KEY (reviewed_by) REFERENCES admin_users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS procurement_decisions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  product_id BIGINT UNSIGNED NOT NULL,
+  market_code VARCHAR(12) NOT NULL,
+  preferred_supplier_product_id BIGINT UNSIGNED NULL,
+  decision_status VARCHAR(50) NOT NULL DEFAULT 'Evaluating',
+  decision_notes TEXT NULL,
+  decided_by BIGINT UNSIGNED NULL,
+  decided_at DATE NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_procurement_decisions (product_id, market_code),
+  INDEX idx_procurement_decisions_status (market_code, decision_status),
+  CONSTRAINT fk_procurement_decisions_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+  CONSTRAINT fk_procurement_decisions_offer FOREIGN KEY (preferred_supplier_product_id) REFERENCES supplier_products(id) ON DELETE SET NULL,
+  CONSTRAINT fk_procurement_decisions_admin FOREIGN KEY (decided_by) REFERENCES admin_users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
