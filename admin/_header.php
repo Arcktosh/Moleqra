@@ -25,8 +25,10 @@ $user = admin_user();
   <a class="<?= $current === 'index.php' ? 'active' : '' ?>" href="index.php">Dashboard</a>
   <a class="<?= $current === 'products.php' ? 'active' : '' ?>" href="products.php">Products</a>
   <a class="<?= $current === 'suppliers.php' ? 'active' : '' ?>" href="suppliers.php">Suppliers</a>
+  <a class="<?= in_array($current, ['sourcing.php','supplier-ops.php'], true) ? 'active' : '' ?>" href="sourcing.php">Sourcing</a>
   <a class="<?= $current === 'coa.php' ? 'active' : '' ?>" href="coa.php">COAs</a>
   <a class="<?= $current === 'enquiries.php' ? 'active' : '' ?>" href="enquiries.php">Enquiries</a>
+  <a class="<?= $current === 'system.php' ? 'active' : '' ?>" href="system.php">System</a>
   <form method="post" action="logout.php"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><button type="submit" class="admin-link-button">Sign out</button></form>
 </aside>
 <main class="admin-main">

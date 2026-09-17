@@ -42,3 +42,21 @@ function db_ready(): bool
 {
     return db() instanceof PDO;
 }
+
+
+function db_table_exists(string $table, ?PDO $pdo = null): bool
+{
+    $pdo ??= db();
+    if (!$pdo || !preg_match('/^[a-zA-Z0-9_]+$/', $table)) {
+        return false;
+    }
+
+    try {
+        $stmt = $pdo->prepare('SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = :table LIMIT 1');
+        $stmt->execute(['table' => $table]);
+        return (bool) $stmt->fetchColumn();
+    } catch (Throwable $e) {
+        error_log('Moleqra table check failed: ' . $e->getMessage());
+        return false;
+    }
+}

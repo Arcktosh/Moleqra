@@ -59,3 +59,22 @@ For production, HTTPS should be mandatory and the hosting control panel should u
 ## Commerce scope
 
 The current build is intentionally an informational and supplier-onboarding site. It does not implement checkout, payments, dosing guidance or human-use instructions.
+
+## Supplier operations layer
+
+The supplier operations layer adds internal sourcing tools without exposing supplier pricing or evaluation data on the public site.
+
+For an existing V2 database, sign in and open `/admin/system.php`, then run **Supplier operations upgrade**. Alternatively import `database/migrations-002-supplier-operations.sql` in the hosting database tool.
+
+Capabilities include:
+
+- Evidence-based supplier qualification checklist with 11 explicit controls
+- Supplier-product relationships and commercial terms
+- Wholesale price, currency, MOQ and lead-time tracking
+- COA/private-label/dropship capability flags
+- Outreach history, outcomes and follow-up dates
+- Test-order tracking for packaging and document/batch checks
+- Sourcing dashboard with due follow-ups and commercial offer matrix
+- Optional non-destructive seed file for the initial SA and US supplier prospect list
+
+The readiness percentage shown in admin is only checklist completion. It does not certify a supplier or replace independent verification.
