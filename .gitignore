@@ -1,0 +1,13 @@
+# Deployment-specific configuration / credentials
+config.php
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local/runtime files
+*.log
+.env
+.env.*
