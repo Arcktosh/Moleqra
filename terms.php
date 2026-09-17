@@ -1,0 +1,8 @@
+<?php
+$pageTitle = 'Terms | Moleqra';
+$pageDescription = 'Moleqra website and research-use-only terms.';
+require __DIR__ . '/includes/header.php';
+?>
+<section class="page-hero"><div class="container"><div class="eyebrow">Terms</div><h1>Website terms.</h1><p>These launch-stage terms describe the intended use of this website while Moleqra completes supplier onboarding.</p></div></section>
+<section class="section"><div class="container grid-2"><div class="card"><h2 style="font-size:1.5rem">Research-use-only scope</h2><p>Any research material presented on this website is intended only for legitimate laboratory, analytical or research purposes. Nothing on this site is medical advice, a dosing instruction, or a representation that a material is approved for human or veterinary administration.</p></div><div class="card"><h2 style="font-size:1.5rem">Launch-stage catalogue</h2><p>Catalogue entries marked as pending, planned or under supplier qualification are informational previews only and are not offers for sale. Availability and documentation may change before launch.</p></div><div class="card"><h2 style="font-size:1.5rem">Information accuracy</h2><p>Moleqra aims to maintain accurate product and batch information. Supplier-generated analytical documents remain subject to the issuing laboratory's methods, limitations and records.</p></div><div class="card"><h2 style="font-size:1.5rem">Acceptable enquiries</h2><p>Moleqra does not provide instructions for self-administration, dosing, treatment, diagnosis or therapeutic use. Such enquiries may be declined.</p></div></div></section>
+<?php require __DIR__ . '/includes/footer.php'; ?>

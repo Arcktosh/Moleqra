@@ -1,13 +1,5 @@
-# Deployment-specific configuration / credentials
-config.php
-
-# OS / editor noise
+config/database.php
+storage/enquiries.jsonl
+storage/*.log
 .DS_Store
 Thumbs.db
-.vscode/
-.idea/
-
-# Local/runtime files
-*.log
-.env
-.env.*
