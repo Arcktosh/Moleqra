@@ -1,5 +1,5 @@
 config/database.php
 storage/enquiries.jsonl
-storage/*.log
+storage/coa/*.pdf
+*.log
 .DS_Store
-Thumbs.db

@@ -38,9 +38,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'message' => $message,
             'ip_hash' => hash('sha256', (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown')),
         ];
-        $storage = __DIR__ . '/storage/enquiries.jsonl';
-        $saved = @file_put_contents($storage, json_encode($record, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX);
-        if ($saved === false) {
+        $saved = false;
+        $pdo = db();
+        if ($pdo) {
+            try {
+                $stmt = $pdo->prepare('INSERT INTO enquiries (topic,name,email,company,message,ip_hash) VALUES (:topic,:name,:email,:company,:message,:ip_hash)');
+                $saved = $stmt->execute([
+                    'topic' => $topic,
+                    'name' => $name,
+                    'email' => $email,
+                    'company' => $company ?: null,
+                    'message' => $message,
+                    'ip_hash' => $record['ip_hash'],
+                ]);
+            } catch (Throwable $e) {
+                error_log('Moleqra enquiry database save failed: ' . $e->getMessage());
+            }
+        }
+        if (!$saved) {
+            $storage = __DIR__ . '/storage/enquiries.jsonl';
+            $saved = @file_put_contents($storage, json_encode($record, JSON_UNESCAPED_SLASHES) . PHP_EOL, FILE_APPEND | LOCK_EX) !== false;
+        }
+        if (!$saved) {
             $errors[] = 'We could not store your enquiry. Please contact Moleqra directly.';
         } else {
             $_SESSION['last_enquiry_at'] = time();

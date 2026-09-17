@@ -1,41 +1,61 @@
 # Moleqra
 
-Launch-stage website for Moleqra, built for conventional shared hosting with PHP, HTML, CSS and vanilla JavaScript. No Node.js runtime, build step, daemon, worker or process manager is required.
+Moleqra is a static-first PHP website for conventional shared hosting. It uses PHP, HTML, CSS, vanilla JavaScript and optional MySQL. There is **no Node.js runtime, build command, daemon, queue worker or service to start/restart**.
 
-## Requirements
+## Hosting requirements
 
 - PHP 8.1+ recommended
-- Apache or compatible PHP hosting
-- Writable `storage/` directory for the enquiry form
-- MySQL is optional for a later migration; `database/schema.sql` is included
+- PDO MySQL extension for admin/database features
+- MySQL 5.7+/MariaDB 10.4+ recommended
+- Apache `.htaccess` support recommended
+- PHP file uploads enabled if COA PDFs will be managed through the admin area
 
-## Deploy
+## Initial deployment
 
-1. Upload the repository contents to the domain's document root.
-2. Ensure `storage/` is writable by PHP but not directly web-accessible.
-3. Confirm the host honours the included `.htaccess` rules for `storage/` and `config/`.
-4. Update `config/app.php` with the final company details and contact address when available.
-5. Open `index.php` in the browser.
-6. Submit a test enquiry and verify a line is appended to `storage/enquiries.jsonl`.
+1. Upload the repository contents to the hosting document root.
+2. Ensure `storage/` and `storage/coa/` are writable by PHP.
+3. The public site works immediately without MySQL. Enquiries fall back to `storage/enquiries.jsonl`.
+4. To enable the admin/database layer, create a MySQL database and user.
+5. Import `database/schema.sql`.
+6. Copy `config/database.example.php` to `config/database.php` and enter the production credentials.
+7. Visit `/admin/setup.php` once and create the first administrator account.
+8. Sign in at `/admin/login.php`.
 
-There is no service to start or restart. Each request is handled by PHP through the web server.
+`config/database.php`, enquiry fallback data and uploaded COA PDFs are intentionally excluded from Git.
 
-## Structure
+## Admin capabilities
 
-- `index.php` — homepage
-- `catalog.php` — launch catalogue preview
-- `quality.php` — supplier/batch quality framework
-- `coa.php` — future public COA library
-- `suppliers.php` — supplier partnership requirements
-- `contact.php` — enquiry form with CSRF, honeypot and basic rate limiting
-- `about.php`, `terms.php`, `privacy.php` — company and policy pages
-- `includes/` — shared PHP layout/bootstrap
-- `assets/` — CSS and vanilla JS
-- `storage/` — enquiry records (gitignored)
-- `database/` — optional MySQL schema
+- Product catalogue management with draft/public states
+- Supplier prospect and qualification tracking
+- Batch-specific COA PDF upload
+- SHA-256 digest recording for uploaded COAs
+- Public/private COA publication controls
+- Enquiry inbox with workflow status and internal notes
+- Dashboard counts
 
-## Production notes
+Public catalogue and COA pages read only records marked public. Private COAs can be viewed only by an authenticated administrator.
 
-The initial enquiry form writes JSON Lines to `storage/enquiries.jsonl` so the site is functional before database credentials or mail delivery are configured. Before public launch, migrate enquiries to MySQL or an approved mail/CRM workflow if preferred, and confirm hosting permissions and backups.
+## Security notes
 
-The product catalogue is deliberately marked as pre-launch. Do not change product status to available until supplier qualification and applicable legal/compliance review are complete.
+- Admin passwords use PHP `password_hash()` / `password_verify()`.
+- Admin state uses PHP sessions and CSRF tokens.
+- The initial setup page locks itself as soon as an administrator exists.
+- `config/` and `storage/` contain `.htaccess` deny rules.
+- COA files are stored below `storage/` and served through `coa-download.php`, rather than linked directly.
+- Uploaded COAs are limited to 10 MB and validated as PDFs before storage.
+- Public contact forms use CSRF protection, a honeypot and basic session throttling.
+
+For production, HTTPS should be mandatory and the hosting control panel should use a supported PHP release.
+
+## Repository layout
+
+- `/admin` — request-driven PHP admin interface
+- `/assets` — CSS and browser JavaScript
+- `/config` — application/database configuration
+- `/database` — MySQL schema
+- `/includes` — shared PHP bootstrap, database, auth and layout helpers
+- `/storage` — protected runtime data and COA files
+
+## Commerce scope
+
+The current build is intentionally an informational and supplier-onboarding site. It does not implement checkout, payments, dosing guidance or human-use instructions.

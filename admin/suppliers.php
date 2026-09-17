@@ -1,0 +1,20 @@
+<?php
+$adminTitle = 'Suppliers';
+require __DIR__ . '/_header.php';
+$pdo = db(); $error=''; $editing=null;
+if ($pdo && $_SERVER['REQUEST_METHOD']==='POST') {
+ if (!csrf_valid($_POST['csrf_token'] ?? null)) $error='Your session expired.'; else {
+  $id=(int)($_POST['id']??0); $name=trim((string)($_POST['name']??'')); $region=trim((string)($_POST['region']??'')); $contact=trim((string)($_POST['contact_name']??'')); $email=trim((string)($_POST['email']??'')); $website=trim((string)($_POST['website']??'')); $status=trim((string)($_POST['status']??'Prospect')); $notes=trim((string)($_POST['notes']??''));
+  if (text_length($name)<2 || text_length($name)>160) $error='Enter a valid supplier name.'; elseif ($email!=='' && !filter_var($email,FILTER_VALIDATE_EMAIL)) $error='Enter a valid email address.'; elseif ($website!=='' && !filter_var($website,FILTER_VALIDATE_URL)) $error='Website must be a full URL including https://.'; else {
+   if($id>0){$sql='UPDATE suppliers SET name=:name,region=:region,contact_name=:contact,email=:email,website=:website,status=:status,notes=:notes WHERE id=:id';$params=compact('name','region','contact','email','website','status','notes','id');}
+   else{$sql='INSERT INTO suppliers (name,region,contact_name,email,website,status,notes) VALUES (:name,:region,:contact,:email,:website,:status,:notes)';$params=compact('name','region','contact','email','website','status','notes');}
+   $pdo->prepare($sql)->execute($params); header('Location: suppliers.php?saved=1'); exit;
+  }
+ }
+}
+if($pdo && isset($_GET['edit'])){$s=$pdo->prepare('SELECT * FROM suppliers WHERE id=:id');$s->execute(['id'=>(int)$_GET['edit']]);$editing=$s->fetch()?:null;}
+$rows=$pdo?$pdo->query('SELECT * FROM suppliers ORDER BY FIELD(status,"Qualified","Evaluating","Contacted","Prospect","Rejected"), name')->fetchAll():[];
+?>
+<div class="admin-heading"><div><div class="eyebrow">Sourcing</div><h1>Suppliers</h1></div></div><?php if(isset($_GET['saved'])):?><div class="alert success">Supplier saved.</div><?php endif;?><?php if($error):?><div class="alert error"><?=e($error)?></div><?php endif;?>
+<div class="admin-two-col"><section class="card"><h2><?= $editing?'Edit supplier':'Add supplier' ?></h2><form method="post"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="id" value="<?=(int)($editing['id']??0)?>"><div class="form-grid"><div class="field"><label>Name</label><input name="name" maxlength="160" required value="<?=e($editing['name']??'')?>"></div><div class="field"><label>Region</label><input name="region" maxlength="80" placeholder="South Africa / USA" value="<?=e($editing['region']??'')?>"></div><div class="field"><label>Contact</label><input name="contact_name" maxlength="120" value="<?=e($editing['contact_name']??'')?>"></div><div class="field"><label>Email</label><input type="email" name="email" maxlength="180" value="<?=e($editing['email']??'')?>"></div><div class="field"><label>Website</label><input name="website" maxlength="255" value="<?=e($editing['website']??'')?>"></div><div class="field"><label>Status</label><select name="status"><?php foreach(['Prospect','Contacted','Evaluating','Qualified','Rejected'] as $v):?><option<?=($editing['status']??'Prospect')===$v?' selected':''?>><?=e($v)?></option><?php endforeach;?></select></div><div class="field full"><label>Notes</label><textarea name="notes" maxlength="10000"><?=e($editing['notes']??'')?></textarea></div><div class="field full"><button class="btn primary">Save supplier</button></div></div></form></section><section class="card"><h2>Supplier pipeline</h2><div class="table-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Region</th><th>Status</th><th></th></tr></thead><tbody><?php foreach($rows as $r):?><tr><td><?=e($r['name'])?></td><td><?=e($r['region'])?></td><td><?=e($r['status'])?></td><td><a href="?edit=<?=(int)$r['id']?>">Edit</a></td></tr><?php endforeach;?><?php if(!$rows):?><tr><td colspan="4">No suppliers yet.</td></tr><?php endif;?></tbody></table></div></section></div>
+<?php require __DIR__ . '/_footer.php'; ?>

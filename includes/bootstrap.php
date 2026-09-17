@@ -7,6 +7,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 
 $config = require __DIR__ . '/../config/app.php';
+require_once __DIR__ . '/database.php';
 
 function config(string $key, mixed $default = null): mixed
 {
