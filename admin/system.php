@@ -2,6 +2,7 @@
 $adminTitle = 'System';
 require __DIR__ . '/_header.php';
 require_once __DIR__ . '/../includes/sourcing.php';
+require_once __DIR__ . '/../includes/procurement.php';
 
 $pdo = db();
 $error = '';
@@ -32,6 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($action === 'upgrade_supplier_ops') {
                 run_sql_file($pdo, __DIR__ . '/../database/migrations-002-supplier-operations.sql');
                 $message = 'Supplier operations tables are ready.';
+            } elseif ($action === 'upgrade_procurement_launch') {
+                if (!sourcing_schema_ready($pdo)) {
+                    run_sql_file($pdo, __DIR__ . '/../database/migrations-002-supplier-operations.sql');
+                }
+                run_sql_file($pdo, __DIR__ . '/../database/migrations-003-procurement-launch.sql');
+                $message = 'Procurement and launch-control tables are ready.';
             } elseif ($action === 'seed_suppliers') {
                 run_sql_file($pdo, __DIR__ . '/../database/seed-supplier-prospects.sql');
                 $message = 'Initial supplier prospects were added without overwriting existing records.';
@@ -44,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $opsReady = sourcing_schema_ready($pdo);
+$procurementReady = procurement_schema_ready($pdo);
 $supplierCount = 0;
 if ($pdo && db_table_exists('suppliers', $pdo)) {
     $supplierCount = (int)$pdo->query('SELECT COUNT(*) FROM suppliers')->fetchColumn();
@@ -59,6 +67,14 @@ if ($pdo && db_table_exists('suppliers', $pdo)) {
   <p><strong>Status:</strong> <?= $opsReady ? 'Ready' : 'Upgrade required' ?></p>
   <?php if (!$opsReady): ?>
   <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_supplier_ops"><button class="btn primary" type="submit">Run supplier operations upgrade</button></form>
+  <?php endif; ?>
+</section>
+<section class="card">
+  <h2>V4 procurement &amp; launch controls</h2>
+  <p class="muted">Adds landed-cost scenarios, market review holds, sourcing decisions and an internal publication gate. The migration is additive. Once installed, existing public product flags are filtered from the catalogue until their launch gate passes.</p>
+  <p><strong>Status:</strong> <?= $procurementReady ? 'Ready' : 'Upgrade required' ?></p>
+  <?php if (!$procurementReady): ?>
+  <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_procurement_launch"><button class="btn primary" type="submit">Run V4 upgrade</button></form>
   <?php endif; ?>
 </section>
 <section class="card">

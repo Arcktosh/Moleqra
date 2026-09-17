@@ -9,5 +9,7 @@ return [
     'contact_email' => '',
     'company_name' => 'Moleqra Biosciences',
     'country' => 'South Africa',
+    'primary_market' => 'ZA',
+    'base_currency' => 'ZAR',
     'launch_status' => 'Supplier onboarding in progress',
 ];

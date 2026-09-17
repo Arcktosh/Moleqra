@@ -44,12 +44,12 @@ require __DIR__ . '/includes/header.php';
             <div class="actions"><a class="btn" href="catalog.php">Preview catalogue</a></div>
         </div>
         <div class="card">
-            <span class="kicker">Planned research materials</span>
+            <span class="kicker">Launch controls</span>
             <ul class="list-clean">
-                <li>BPC-157 research peptide</li>
-                <li>TB-500 research peptide</li>
-                <li>GHK-Cu research peptide</li>
-                <li>Additional materials after supplier qualification</li>
+                <li>Supplier qualification completed before sourcing approval</li>
+                <li>Batch documentation linked before public catalogue release</li>
+                <li>Market/compliance review tracked separately from commercial sourcing</li>
+                <li>Public listing remains an explicit administrative decision</li>
             </ul>
         </div>
     </div>

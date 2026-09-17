@@ -2,11 +2,15 @@
 $pageTitle = 'Research Catalogue | Moleqra';
 $pageDescription = 'Moleqra research catalogue and batch documentation status.';
 require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/procurement.php';
 $products = [];
 $pdo = db();
 if ($pdo) {
     try {
-        $products = $pdo->query('SELECT sku,name,category,format,status,purity_label,description FROM products WHERE is_public=1 ORDER BY sort_order,name')->fetchAll();
+        $products = $pdo->query('SELECT id,sku,name,category,format,status,purity_label,description FROM products WHERE is_public=1 ORDER BY sort_order,name')->fetchAll();
+        if (procurement_schema_ready($pdo)) {
+            $products = array_values(array_filter($products, fn($product) => product_publication_gate($pdo, (int)$product['id'])['allowed']));
+        }
     } catch (Throwable $e) { $products = []; }
 }
 require __DIR__ . '/includes/header.php';

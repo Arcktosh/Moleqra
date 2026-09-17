@@ -78,3 +78,24 @@ Capabilities include:
 - Optional non-destructive seed file for the initial SA and US supplier prospect list
 
 The readiness percentage shown in admin is only checklist completion. It does not certify a supplier or replace independent verification.
+
+## V4 procurement and launch controls
+
+V4 separates supplier sourcing, landed-cost planning and public catalogue governance.
+
+For an existing V3 database, sign in and open `/admin/system.php`, then run **V4 procurement & launch controls**. Alternatively import `database/migrations-003-procurement-launch.sql` after the supplier-operations migration. After the migration exists, current `is_public=1` products are filtered from the public catalogue until their configured launch gate passes.
+
+New capabilities:
+
+- Procurement quote scenarios linked to supplier-product offers
+- Quantity, quote currency and manual FX-to-base-currency tracking
+- Shipping, duty/tax estimate, independent testing, packaging/label, payment-fee and miscellaneous cost inputs
+- Calculated landed total and landed unit cost in the configured base currency
+- Product-by-market review records with an explicit listing hold
+- Sourcing decisions that select a supplier offer without automatically publishing a product
+- Publication gate requiring the configured market review, approved sourcing decision, qualified supplier status, core supplier evidence controls and a public batch COA
+- Read-time catalogue gate as a second safeguard against direct database changes bypassing the admin workflow
+
+The publication gate is an internal process control only. A `PASS` state is **not** a representation of regulatory approval, legal compliance, safety, suitability for use, or permission to market a material. External legal/regulatory review remains a separate business responsibility.
+
+The default primary market is `ZA` and the default base currency is `ZAR`. Both can be changed in `config/app.php`.

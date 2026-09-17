@@ -26,6 +26,8 @@ $user = admin_user();
   <a class="<?= $current === 'products.php' ? 'active' : '' ?>" href="products.php">Products</a>
   <a class="<?= $current === 'suppliers.php' ? 'active' : '' ?>" href="suppliers.php">Suppliers</a>
   <a class="<?= in_array($current, ['sourcing.php','supplier-ops.php'], true) ? 'active' : '' ?>" href="sourcing.php">Sourcing</a>
+  <a class="<?= $current === 'procurement.php' ? 'active' : '' ?>" href="procurement.php">Procurement</a>
+  <a class="<?= $current === 'launch.php' ? 'active' : '' ?>" href="launch.php">Launch</a>
   <a class="<?= $current === 'coa.php' ? 'active' : '' ?>" href="coa.php">COAs</a>
   <a class="<?= $current === 'enquiries.php' ? 'active' : '' ?>" href="enquiries.php">Enquiries</a>
   <a class="<?= $current === 'system.php' ? 'active' : '' ?>" href="system.php">System</a>
