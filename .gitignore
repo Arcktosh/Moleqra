@@ -4,3 +4,7 @@ storage/coa/*.pdf
 *.log
 .DS_Store
 config/payment.php
+
+config/mail.php
+
+config/courier.php

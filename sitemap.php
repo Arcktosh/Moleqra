@@ -1,0 +1,6 @@
+<?php
+require_once __DIR__.'/includes/bootstrap.php';require_once __DIR__.'/includes/commerce.php';require_once __DIR__.'/includes/seo.php';header('Content-Type: application/xml; charset=UTF-8');$base=seo_base_url();
+if($base===''){http_response_code(503);echo '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>';exit;}
+$urls=[];foreach(['','catalog.php','quality.php','coa.php','suppliers.php','about.php','contact.php','terms.php','privacy.php'] as $path)$urls[]=['loc'=>$path===''?$base.'/':seo_url($path),'lastmod'=>null];
+$pdo=db();if($pdo&&commerce_schema_ready($pdo)){try{foreach(commerce_public_products($pdo) as $p){if(isset($p['seo_indexable'])&&!$p['seo_indexable'])continue;$urls[]=['loc'=>seo_product_url($p),'lastmod'=>$p['updated_at']??null];}}catch(Throwable $e){}}
+echo '<?xml version="1.0" encoding="UTF-8"?>'."\n".'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";foreach($urls as $u){if(!$u['loc'])continue;echo '  <url><loc>'.htmlspecialchars($u['loc'],ENT_XML1|ENT_QUOTES,'UTF-8').'</loc>';if($u['lastmod'])echo '<lastmod>'.htmlspecialchars(substr((string)$u['lastmod'],0,10),ENT_XML1|ENT_QUOTES,'UTF-8').'</lastmod>';echo "</url>\n";}echo '</urlset>';

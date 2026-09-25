@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/audit.php';
 require_admin();
 $adminTitle = $adminTitle ?? 'Admin';
 $current = basename($_SERVER['PHP_SELF'] ?? 'index.php');
@@ -32,9 +33,17 @@ $user = admin_user();
   <a class="<?= in_array($current, ['inventory.php','inventory-batch.php'], true) ? 'active' : '' ?>" href="inventory.php">Inventory</a>
   <a class="<?= $current === 'purchase-orders.php' ? 'active' : '' ?>" href="purchase-orders.php">POs</a>
   <a class="<?= $current === 'commerce.php' ? 'active' : '' ?>" href="commerce.php">Commerce</a>
+  <a class="<?= $current === 'storefront.php' ? 'active' : '' ?>" href="storefront.php">Storefront</a>
   <a class="<?= $current === 'orders.php' ? 'active' : '' ?>" href="orders.php">Orders</a>
+  <a class="<?= $current === 'customers.php' ? 'active' : '' ?>" href="customers.php">Customers</a>
+  <a class="<?= $current === 'payments.php' ? 'active' : '' ?>" href="payments.php">Payments</a>
+  <a class="<?= $current === 'refunds.php' ? 'active' : '' ?>" href="refunds.php">Refunds</a>
+  <a class="<?= $current === 'shipping.php' ? 'active' : '' ?>" href="shipping.php">Shipping</a>
   <a class="<?= $current === 'coa.php' ? 'active' : '' ?>" href="coa.php">COAs</a>
   <a class="<?= $current === 'enquiries.php' ? 'active' : '' ?>" href="enquiries.php">Enquiries</a>
+  <a class="<?= $current === 'exports.php' ? 'active' : '' ?>" href="exports.php">Exports</a>
+  <a class="<?= $current === 'diagnostics.php' ? 'active' : '' ?>" href="diagnostics.php">Diagnostics</a>
+  <a class="<?= $current === 'audit.php' ? 'active' : '' ?>" href="audit.php">Audit log</a>
   <a class="<?= $current === 'system.php' ? 'active' : '' ?>" href="system.php">System</a>
   <form method="post" action="logout.php"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><button type="submit" class="admin-link-button">Sign out</button></form>
 </aside>

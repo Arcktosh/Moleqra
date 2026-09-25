@@ -1,0 +1,6 @@
+<?php
+$rootPrefix='../';$pageTitle='Verify email | Moleqra';$pageRobots='noindex,nofollow';require_once __DIR__.'/../includes/bootstrap.php';require_once __DIR__.'/../includes/customer_security.php';$token=(string)($_GET['token']??'');$pdo=db();$verified=false;
+if($pdo&&($row=customer_security_consume_token($pdo,$token,'verify_email'))){$pdo->beginTransaction();try{$pdo->prepare('INSERT INTO customer_account_security(customer_id,email_verified_at) VALUES(:id,NOW()) ON DUPLICATE KEY UPDATE email_verified_at=NOW()')->execute(['id'=>$row['customer_id']]);$pdo->prepare('UPDATE customer_security_tokens SET used_at=NOW() WHERE id=:id')->execute(['id'=>$row['id']]);$pdo->commit();$verified=true;}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();}}
+if($verified){header('Location: login.php?verified=1');exit;}
+require __DIR__.'/../includes/header.php';?>
+<section class="page-hero"><div class="container"><div class="eyebrow">Customer account</div><h1>Email verification</h1></div></section><section class="section"><div class="container narrow"><div class="alert error">This verification link is invalid, expired or has already been used.</div><p><a href="resend-verification.php">Request another verification email</a>.</p></div></section><?php require __DIR__.'/../includes/footer.php';?>

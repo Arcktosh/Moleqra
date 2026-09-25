@@ -1,0 +1,8 @@
+<?php
+$adminTitle='Diagnostics';require __DIR__.'/_header.php';require_once __DIR__.'/../includes/diagnostics.php';$result=technical_launch_diagnostics(db());
+?>
+<div class="admin-heading"><div><div class="eyebrow">Pre-launch</div><h1>Technical diagnostics</h1></div><div class="diagnostic-summary"><span class="diag pass"><?= $result['pass'] ?> pass</span><span class="diag warn"><?= $result['warn'] ?> warnings</span><span class="diag fail"><?= $result['fail'] ?> failures</span></div></div>
+<div class="notice"><strong>Scope:</strong> these checks cover application/deployment readiness only. They are not a legal, regulatory, tax, product-safety or payment-provider certification.</div>
+<section class="card admin-section-gap"><div class="diagnostic-list"><?php foreach($result['items'] as $item):?><article class="diagnostic-row"><span class="diag <?= e($item['status']) ?>"><?= e(strtoupper($item['status'])) ?></span><div><h3><?= e($item['label']) ?></h3><p><?= e($item['detail']) ?></p><?php if($item['fix']):?><small class="muted"><?= e($item['fix']) ?></small><?php endif;?></div></article><?php endforeach;?></div></section>
+<section class="card admin-section-gap"><h2>Launch sequence</h2><ol class="admin-list"><li>Resolve all technical failures above.</li><li>Complete PayFast sandbox checkout, ITN, cancellation and refund-reconciliation tests on public HTTPS staging.</li><li>Test outbound account verification, password reset, payment, dispatch and refund emails.</li><li>Confirm catalogue publication, batch/COA release controls, shipping rules and invoice identity details.</li><li>Run legal/regulatory/privacy/tax review separately before enabling real sales.</li></ol></section>
+<?php require __DIR__.'/_footer.php';?>

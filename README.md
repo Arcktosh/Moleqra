@@ -22,7 +22,7 @@ Moleqra is a static-first PHP website for conventional shared hosting. It uses P
 7. Visit `/admin/setup.php` once and create the first administrator account.
 8. Sign in at `/admin/login.php`.
 
-`config/database.php`, `config/payment.php`, enquiry fallback data and uploaded COA PDFs are intentionally excluded from Git.
+`config/database.php`, `config/payment.php`, `config/mail.php`, `config/courier.php`, enquiry fallback data and uploaded COA PDFs are intentionally excluded from Git.
 
 ## Admin capabilities
 
@@ -162,3 +162,95 @@ Cart visibility requires all of the following:
 Submitting checkout creates an order and reserves specific inventory batches for the configured reservation window. A validated successful PayFast ITN changes those reservations from `Active` to `Confirmed`. Admin fulfilment then consumes those exact batches and records the stock movements. Expired unpaid reservations are released lazily on later commerce requests, which avoids any requirement for cron or a long-running worker.
 
 The checkout remains explicitly research-use-only. It does not provide dosing, administration, treatment or therapeutic guidance. The working Terms and Privacy pages should receive final South African legal/POPIA review before public launch.
+
+## V7 commercial operations
+
+V7 adds the commercial operations layer around the V6 cart and payment flow. For an existing V6 database, open `/admin/system.php` and run **V7 commercial operations**, or import `database/migrations-006-commercial-operations.sql` after the V6 migration.
+
+Capabilities include:
+
+- Saved customer delivery addresses with a default-address workflow
+- Destination/order-value shipping rules managed from admin
+- Immutable invoice records issued after confirmed payment
+- Customer-facing printable invoices plus lightweight PDF downloads
+- Transactional notification logging for order, payment, dispatch and refund events
+- Optional synchronous PHP `mail()` delivery without any queue worker requirement
+- Payment reconciliation records separate from gateway audit records
+- Full/partial refund request tracking with refund receipts and gateway reference capture
+- Customer account administration and account enable/disable controls
+- Unpaid-order filtering and manual cleanup of expired stock reservations
+- Admin visibility of order emails, invoices, refunds, payment validation and shipping-rule selection
+- Manual courier fulfilment retained behind a courier provider configuration boundary
+
+### Email configuration
+
+1. Copy `config/mail.example.php` to `config/mail.php`.
+2. Leave `enabled => false` or `transport => 'log'` during development. Notifications are still recorded in the database.
+3. When the host's outbound PHP mail is verified, set `enabled => true`, `transport => 'mail'`, and configure a valid From address.
+4. Notification delivery is synchronous by design so no worker or cron process is required.
+
+### Shipping configuration
+
+The V7 migration creates a default South Africa shipping rule equivalent to the previous R120 flat rate with free shipping from R3,500. Admin can create more specific province-level rules; exact province matches take precedence over the all-provinces fallback.
+
+`config/courier.example.php` provides a courier-provider boundary. Manual dispatch/tracking remains the production-safe default. A ShipLogic configuration slot is included for later account-specific API integration; do not enable an undocumented endpoint contract.
+
+### Refund and reconciliation workflow
+
+Moleqra does not automatically initiate PayFast merchant refunds. Admin records a full/partial refund request, processes the actual refund through the payment provider's approved merchant workflow, then marks the record processed with the gateway reference. The order payment state, stock reservation state, customer refund receipt and notification log are updated from that internal record.
+
+Payment reconciliation is separate: each gateway notification can be marked `Matched`, `Reviewed` or `Exception` with finance notes. This keeps payment security validation, accounting review and refunds as distinct audit trails.
+
+## V8 storefront and launch hardening
+
+V8 adds the storefront presentation and pre-launch hardening layer without changing the V5 batch-ledger model. For an existing V7 database, open `/admin/system.php` and run **V8 storefront upgrade**, or import `database/migrations-007-storefront-hardening.sql` after the V7 migration.
+
+Capabilities include:
+
+- Sellable pack-size variants with their own SKU, label, price, tax, min/max order controls and sort order
+- Variant purchases reserve and consume the correct number of underlying released inventory units rather than creating a second stock ledger
+- Storefront-specific product slugs, short descriptions, search keywords, meta titles/descriptions, low-stock messaging and related materials
+- Public catalogue search, category filtering and price/name sorting
+- Product canonical URLs and Product/Offer structured data when a public HTTPS `base_url` is configured
+- Dynamic `sitemap.xml` and `robots.txt` routes through Apache rewrite rules
+- Saved public product URLs using slugs while retaining ID lookup compatibility
+- Password-reset and email-verification tokens stored only as SHA-256 hashes, with expiry and single-use handling
+- Generic password-reset request responses to reduce account enumeration
+- Optional verified-email enforcement through `config/commerce.php`
+- Admin audit logging for high-impact commerce, customer, storefront and system actions
+- Authenticated CSV exports for orders, customers, products and inventory, with spreadsheet-formula escaping
+- Pre-launch diagnostics for HTTPS, database/schema state, payment configuration, mail dependencies, catalogue/COA/variant readiness and SEO slugs
+- Public stock messaging that avoids exposing exact inventory quantities
+
+### Account recovery and verification
+
+Password reset and verification links require the final public HTTPS `base_url` so generated links resolve correctly. Keep `require_verified_email => false` until outbound mail has been configured and tested. When verification is enforced, V8 diagnostics treats missing HTTPS/mail dependencies as a launch failure rather than allowing an account-flow deadlock.
+
+The default migration marks existing customer accounts as already verified so the V8 upgrade does not unexpectedly lock out existing users. New registrations receive an unverified security record and can be verified using the email-token flow.
+
+### SEO routes
+
+With Apache `mod_rewrite` enabled, root `.htaccess` maps:
+
+- `/sitemap.xml` to `sitemap.php`
+- `/robots.txt` to `robots.php`
+
+Set `config/app.php` `base_url` to the final HTTPS origin before indexing. Account, payment and token-bearing order/invoice/refund routes are marked `noindex,nofollow`. Product search result pages are also noindexed to avoid indexing arbitrary internal search combinations.
+
+### Storefront administration
+
+Use **Admin → Storefront** for presentation-only and sellable-variant configuration. Keep the core **Products** area as the research-material master record and V6 **Commerce** settings as the fallback/base offer. This separation avoids mixing procurement/inventory data with merchandising metadata.
+
+### Fresh database sequence
+
+For a new database apply, in order:
+
+1. `database/schema.sql`
+2. `database/migrations-002-supplier-operations.sql`
+3. `database/migrations-003-procurement-launch.sql`
+4. `database/migrations-004-inventory.sql`
+5. `database/migrations-005-commerce.sql`
+6. `database/migrations-006-commercial-operations.sql`
+7. `database/migrations-007-storefront-hardening.sql`
+
+The entire V8 runtime remains ordinary PHP requests plus MySQL. There is no Node runtime, Composer runtime dependency, daemon, queue worker, process manager or required service restart.

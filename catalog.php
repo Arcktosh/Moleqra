@@ -1,29 +1,21 @@
 <?php
-$pageTitle = 'Research Catalogue | Moleqra';
-$pageDescription = 'Moleqra research catalogue and batch documentation status.';
-require_once __DIR__ . '/includes/bootstrap.php';
-require_once __DIR__ . '/includes/procurement.php';
-require_once __DIR__ . '/includes/commerce.php';
-$products = [];
-$pdo = db();
-$commerceReady = $pdo && commerce_schema_ready($pdo);
-if ($pdo) {
-    try {
-        if ($commerceReady && commerce_enabled()) {
-            $products = commerce_public_products($pdo);
-        } else {
-            $products = $pdo->query('SELECT id,sku,name,category,format,status,purity_label,description FROM products WHERE is_public=1 ORDER BY sort_order,name')->fetchAll();
-            if (procurement_schema_ready($pdo)) $products = array_values(array_filter($products, fn($product) => product_publication_gate($pdo, (int)$product['id'])['allowed']));
-        }
-    } catch (Throwable $e) { $products = []; }
-}
-require __DIR__ . '/includes/header.php';
+$pageTitle='Research Catalogue | Moleqra';$pageDescription='Browse Moleqra research-use-only materials, pack sizes, batch-documentation status and released stock availability.';
+require_once __DIR__.'/includes/bootstrap.php';require_once __DIR__.'/includes/procurement.php';require_once __DIR__.'/includes/commerce.php';require_once __DIR__.'/includes/seo.php';
+$pdo=db();$commerceReady=$pdo&&commerce_schema_ready($pdo);$products=[];$q=trim((string)($_GET['q']??''));$category=trim((string)($_GET['category']??''));$sort=(string)($_GET['sort']??'featured');
+if($pdo){try{$products=$commerceReady&&commerce_enabled()?commerce_public_products($pdo):$pdo->query('SELECT id,sku,name,category,format,status,purity_label,description FROM products WHERE is_public=1 ORDER BY sort_order,name')->fetchAll();if(!$commerceReady&&procurement_schema_ready($pdo))$products=array_values(array_filter($products,fn($p)=>product_publication_gate($pdo,(int)$p['id'])['allowed']));}catch(Throwable $e){$products=[];}}
+$allProducts=$products;$categories=function_exists('storefront_categories')?storefront_categories($allProducts):[];
+if($category!=='')$products=array_values(array_filter($products,fn($p)=>strcasecmp((string)($p['category']??''),$category)===0));
+if($q!==''){$needle=strtolower($q);$products=array_values(array_filter($products,fn($p)=>str_contains(function_exists('storefront_search_haystack')?storefront_search_haystack($p):strtolower(implode(' ',array_map('strval',$p))),$needle)));$pageRobots='noindex,follow';}
+if($sort==='name')usort($products,fn($a,$b)=>strcasecmp($a['name'],$b['name']));elseif($sort==='price')usort($products,fn($a,$b)=>(float)($a['price']??PHP_FLOAT_MAX)<=>(float)($b['price']??PHP_FLOAT_MAX));elseif($sort==='price-desc')usort($products,fn($a,$b)=>(float)($b['price']??0)<=>(float)($a['price']??0));
+if(seo_base_url()!==''){$canonicalUrl=seo_url('catalog.php'.($category!==''?'?category='.rawurlencode($category):''));}
+require __DIR__.'/includes/header.php';
 ?>
-<section class="page-hero"><div class="container"><div class="eyebrow">Research catalogue</div><h1>Focused research materials.</h1><p>Public records appear only after internal supplier and documentation review. Catalogue publication is not a representation of suitability for human or veterinary use.</p></div></section>
+<section class="page-hero"><div class="container"><div class="eyebrow">Research catalogue</div><h1>Focused research materials.</h1><p>Search by material or category. Public records appear only after supplier, documentation and release controls pass.</p></div></section>
 <section class="section"><div class="container">
-    <div class="notice" style="margin-bottom:1.4rem"><strong>Research use only.</strong> Moleqra does not provide dosing, treatment, self-administration, or therapeutic guidance.</div>
-    <?php if ($products): ?><div class="product-grid">
-        <?php foreach ($products as $product): ?><article class="product-card"><span class="sku"><?= e($product['sku']) ?></span><h2 style="font-size:1.7rem;margin-top:.7rem"><a href="product.php?id=<?= (int)$product['id'] ?>"><?= e($product['name']) ?></a></h2><?php if ($product['category']): ?><div class="kicker"><?= e($product['category']) ?></div><?php endif; ?><p><?= e($product['description'] ?: $product['format']) ?></p><?php if($commerceReady && isset($product['price'])):?><div class="catalog-commerce"><strong><?= commerce_money((float)$product['price']) ?></strong><span class="small muted"><?= (float)$product['available_qty']>0?e((string)$product['available_qty']).' available':'Out of stock' ?></span></div><?php endif; ?><div class="product-footer"><span class="tag"><?= e($product['status']) ?></span><a href="product.php?id=<?= (int)$product['id'] ?>">View →</a></div></article><?php endforeach; ?>
-    </div><?php else: ?><div class="card"><h2 style="font-size:1.6rem">Catalogue onboarding</h2><p>No product records are currently published for online ordering. Moleqra is qualifying suppliers, reviewing batch documentation and preparing released inventory.</p></div><?php endif; ?>
+<div class="notice" style="margin-bottom:1.4rem"><strong>Research use only.</strong> Moleqra does not provide dosing, treatment, self-administration, or therapeutic guidance.</div>
+<form method="get" class="catalog-toolbar card"><div class="field catalog-search"><label for="catalog-q">Search catalogue</label><input id="catalog-q" type="search" name="q" value="<?= e($q) ?>" placeholder="Name, SKU or keyword"></div><div class="field"><label>Category</label><select name="category"><option value="">All categories</option><?php foreach($categories as $cat):?><option value="<?= e($cat) ?>"<?= strcasecmp($cat,$category)===0?' selected':'' ?>><?= e($cat) ?></option><?php endforeach;?></select></div><div class="field"><label>Sort</label><select name="sort"><option value="featured"<?= $sort==='featured'?' selected':'' ?>>Featured</option><option value="name"<?= $sort==='name'?' selected':'' ?>>Name</option><option value="price"<?= $sort==='price'?' selected':'' ?>>Price: low to high</option><option value="price-desc"<?= $sort==='price-desc'?' selected':'' ?>>Price: high to low</option></select></div><div class="catalog-toolbar-action"><button class="btn primary">Apply</button><?php if($q!==''||$category!==''||$sort!=='featured'):?><a class="btn" href="catalog.php">Clear</a><?php endif;?></div></form>
+<?php if($categories):?><div class="category-chips" aria-label="Catalogue categories"><a href="catalog.php" class="tag">All</a><?php foreach($categories as $cat):?><a class="tag" href="catalog.php?category=<?= rawurlencode($cat) ?>"><?= e($cat) ?></a><?php endforeach;?></div><?php endif;?>
+<p class="muted catalog-result-count"><?= count($products) ?> result<?= count($products)===1?'':'s' ?><?= $q!==''?' for “'.e($q).'”':'' ?>.</p>
+<?php if($products):?><div class="product-grid"><?php foreach($products as $product):$path=function_exists('storefront_product_path')?storefront_product_path($product):'product.php?id='.(int)$product['id'];$stock=function_exists('storefront_stock_message')?storefront_stock_message($product):((float)($product['available_qty']??0)>0?'In stock':'Out of stock');?><article class="product-card"><span class="sku"><?= e($product['sku']) ?></span><h2 style="font-size:1.7rem;margin-top:.7rem"><a href="<?= e($path) ?>"><?= e($product['name']) ?></a></h2><?php if($product['category']):?><div class="kicker"><?= e($product['category']) ?></div><?php endif;?><p><?= e(storefront_summary($product)) ?></p><?php if($commerceReady&&isset($product['price'])):?><div class="catalog-commerce"><strong><?= commerce_money((float)$product['price']) ?><?= !empty($product['variants'])?' +':'' ?></strong><span class="stock-status <?= $stock==='Out of stock'?'out':'' ?>"><?= e($stock) ?></span></div><?php endif;?><div class="product-footer"><span><?= e($product['purity_label']??'Batch documentation') ?></span><a href="<?= e($path) ?>">View material →</a></div></article><?php endforeach;?></div><?php else:?><div class="card"><h2>No matching materials</h2><p>Adjust the search or category filter.</p><a class="btn" href="catalog.php">View full catalogue</a></div><?php endif;?>
 </div></section>
-<?php require __DIR__ . '/includes/footer.php'; ?>
+<?php require __DIR__.'/includes/footer.php';?>

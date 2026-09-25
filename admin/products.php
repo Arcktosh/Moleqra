@@ -46,6 +46,7 @@ if ($pdo && $_SERVER['REQUEST_METHOD'] === 'POST') {
                     $params += ['purity'=>$purity ?: null,'public'=>$public];
                 }
                 $pdo->prepare($sql)->execute($params);
+                $savedId=$id>0?$id:(int)$pdo->lastInsertId();admin_audit($pdo,$id>0?'product.update':'product.create','product',(string)$savedId,'Saved product master record',['sku'=>$sku,'public'=>$public]);
                 header('Location: products.php?saved=1' . ($held ? '&held=1' : '')); exit;
             } catch (Throwable $e) { $error = 'Could not save product. Check that the SKU is unique.'; }
         }
