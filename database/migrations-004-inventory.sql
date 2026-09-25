@@ -1,0 +1,102 @@
+CREATE TABLE IF NOT EXISTS purchase_orders (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  supplier_id BIGINT UNSIGNED NOT NULL,
+  po_number VARCHAR(100) NOT NULL,
+  ordered_at DATE NOT NULL,
+  expected_at DATE NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'Draft',
+  currency CHAR(3) NOT NULL DEFAULT 'ZAR',
+  shipping_cost DECIMAL(14,2) NOT NULL DEFAULT 0,
+  other_cost DECIMAL(14,2) NOT NULL DEFAULT 0,
+  notes TEXT NULL,
+  created_by BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_purchase_orders_number (po_number),
+  INDEX idx_purchase_orders_supplier (supplier_id, ordered_at),
+  INDEX idx_purchase_orders_status (status),
+  CONSTRAINT fk_purchase_orders_supplier FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_purchase_orders_admin FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS purchase_order_items (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  purchase_order_id BIGINT UNSIGNED NOT NULL,
+  product_id BIGINT UNSIGNED NOT NULL,
+  supplier_product_id BIGINT UNSIGNED NULL,
+  description VARCHAR(180) NULL,
+  quantity_ordered DECIMAL(12,3) NOT NULL,
+  quantity_received DECIMAL(12,3) NOT NULL DEFAULT 0,
+  unit_cost DECIMAL(14,4) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_purchase_order_items_po (purchase_order_id),
+  INDEX idx_purchase_order_items_product (product_id),
+  CONSTRAINT fk_purchase_order_items_po FOREIGN KEY (purchase_order_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
+  CONSTRAINT fk_purchase_order_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_purchase_order_items_offer FOREIGN KEY (supplier_product_id) REFERENCES supplier_products(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS inventory_batches (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  product_id BIGINT UNSIGNED NOT NULL,
+  supplier_id BIGINT UNSIGNED NOT NULL,
+  purchase_order_item_id BIGINT UNSIGNED NULL,
+  coa_document_id BIGINT UNSIGNED NULL,
+  batch_number VARCHAR(100) NOT NULL,
+  received_at DATE NOT NULL,
+  expiry_date DATE NULL,
+  retest_date DATE NULL,
+  status VARCHAR(40) NOT NULL DEFAULT 'Quarantine',
+  units_received DECIMAL(12,3) NOT NULL,
+  units_on_hand DECIMAL(12,3) NOT NULL DEFAULT 0,
+  unit_cost_base DECIMAL(14,4) NULL,
+  storage_location VARCHAR(120) NULL,
+  notes TEXT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_inventory_batch_identity (product_id, supplier_id, batch_number),
+  INDEX idx_inventory_batches_product (product_id, status),
+  INDEX idx_inventory_batches_supplier (supplier_id),
+  INDEX idx_inventory_batches_retest (retest_date),
+  INDEX idx_inventory_batches_expiry (expiry_date),
+  CONSTRAINT fk_inventory_batches_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_inventory_batches_supplier FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_inventory_batches_po_item FOREIGN KEY (purchase_order_item_id) REFERENCES purchase_order_items(id) ON DELETE SET NULL,
+  CONSTRAINT fk_inventory_batches_coa FOREIGN KEY (coa_document_id) REFERENCES coa_documents(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS inventory_release_checks (
+  batch_id BIGINT UNSIGNED NOT NULL,
+  quantity_verified TINYINT(1) NOT NULL DEFAULT 0,
+  packaging_ok TINYINT(1) NOT NULL DEFAULT 0,
+  coa_linked_verified TINYINT(1) NOT NULL DEFAULT 0,
+  batch_coa_match TINYINT(1) NOT NULL DEFAULT 0,
+  storage_ok TINYINT(1) NOT NULL DEFAULT 0,
+  release_notes TEXT NULL,
+  released_by BIGINT UNSIGNED NULL,
+  released_at DATETIME NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (batch_id),
+  CONSTRAINT fk_inventory_release_checks_batch FOREIGN KEY (batch_id) REFERENCES inventory_batches(id) ON DELETE CASCADE,
+  CONSTRAINT fk_inventory_release_checks_admin FOREIGN KEY (released_by) REFERENCES admin_users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS inventory_movements (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  batch_id BIGINT UNSIGNED NOT NULL,
+  movement_type VARCHAR(40) NOT NULL,
+  quantity_delta DECIMAL(12,3) NOT NULL DEFAULT 0,
+  reference VARCHAR(140) NULL,
+  reason TEXT NULL,
+  created_by BIGINT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  INDEX idx_inventory_movements_batch (batch_id, created_at),
+  INDEX idx_inventory_movements_type (movement_type),
+  CONSTRAINT fk_inventory_movements_batch FOREIGN KEY (batch_id) REFERENCES inventory_batches(id) ON DELETE CASCADE,
+  CONSTRAINT fk_inventory_movements_admin FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

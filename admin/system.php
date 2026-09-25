@@ -3,6 +3,7 @@ $adminTitle = 'System';
 require __DIR__ . '/_header.php';
 require_once __DIR__ . '/../includes/sourcing.php';
 require_once __DIR__ . '/../includes/procurement.php';
+require_once __DIR__ . '/../includes/inventory.php';
 
 $pdo = db();
 $error = '';
@@ -39,6 +40,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 run_sql_file($pdo, __DIR__ . '/../database/migrations-003-procurement-launch.sql');
                 $message = 'Procurement and launch-control tables are ready.';
+            } elseif ($action === 'upgrade_inventory') {
+                if (!sourcing_schema_ready($pdo)) {
+                    run_sql_file($pdo, __DIR__ . '/../database/migrations-002-supplier-operations.sql');
+                }
+                if (!procurement_schema_ready($pdo)) {
+                    run_sql_file($pdo, __DIR__ . '/../database/migrations-003-procurement-launch.sql');
+                }
+                run_sql_file($pdo, __DIR__ . '/../database/migrations-004-inventory.sql');
+                $message = 'Inventory and batch-control tables are ready.';
             } elseif ($action === 'seed_suppliers') {
                 run_sql_file($pdo, __DIR__ . '/../database/seed-supplier-prospects.sql');
                 $message = 'Initial supplier prospects were added without overwriting existing records.';
@@ -52,6 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $opsReady = sourcing_schema_ready($pdo);
 $procurementReady = procurement_schema_ready($pdo);
+$inventoryReady = inventory_schema_ready($pdo);
 $supplierCount = 0;
 if ($pdo && db_table_exists('suppliers', $pdo)) {
     $supplierCount = (int)$pdo->query('SELECT COUNT(*) FROM suppliers')->fetchColumn();
@@ -75,6 +86,14 @@ if ($pdo && db_table_exists('suppliers', $pdo)) {
   <p><strong>Status:</strong> <?= $procurementReady ? 'Ready' : 'Upgrade required' ?></p>
   <?php if (!$procurementReady): ?>
   <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_procurement_launch"><button class="btn primary" type="submit">Run V4 upgrade</button></form>
+  <?php endif; ?>
+</section>
+<section class="card">
+  <h2>V5 inventory &amp; batch control</h2>
+  <p class="muted">Adds purchase orders, PO lines, received batch inventory, quarantine/release checks and an auditable stock movement ledger. The migration is additive.</p>
+  <p><strong>Status:</strong> <?= $inventoryReady ? 'Ready' : 'Upgrade required' ?></p>
+  <?php if (!$inventoryReady): ?>
+  <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_inventory"><button class="btn primary" type="submit">Run V5 inventory upgrade</button></form>
   <?php endif; ?>
 </section>
 <section class="card">
