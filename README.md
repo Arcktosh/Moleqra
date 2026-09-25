@@ -9,6 +9,7 @@ Moleqra is a static-first PHP website for conventional shared hosting. It uses P
 - MySQL 5.7+/MariaDB 10.4+ recommended
 - Apache `.htaccess` support recommended
 - PHP file uploads enabled if COA PDFs will be managed through the admin area
+- Outbound HTTPS support through PHP cURL or `allow_url_fopen` for PayFast ITN server validation
 
 ## Initial deployment
 
@@ -21,7 +22,7 @@ Moleqra is a static-first PHP website for conventional shared hosting. It uses P
 7. Visit `/admin/setup.php` once and create the first administrator account.
 8. Sign in at `/admin/login.php`.
 
-`config/database.php`, enquiry fallback data and uploaded COA PDFs are intentionally excluded from Git.
+`config/database.php`, `config/payment.php`, enquiry fallback data and uploaded COA PDFs are intentionally excluded from Git.
 
 ## Admin capabilities
 
@@ -56,9 +57,6 @@ For production, HTTPS should be mandatory and the hosting control panel should u
 - `/includes` — shared PHP bootstrap, database, auth and layout helpers
 - `/storage` — protected runtime data and COA files
 
-## Commerce scope
-
-The current build is intentionally an informational and supplier-onboarding site. It does not implement checkout, payments, dosing guidance or human-use instructions.
 
 ## Supplier operations layer
 
@@ -99,3 +97,68 @@ New capabilities:
 The publication gate is an internal process control only. A `PASS` state is **not** a representation of regulatory approval, legal compliance, safety, suitability for use, or permission to market a material. External legal/regulatory review remains a separate business responsibility.
 
 The default primary market is `ZA` and the default base currency is `ZAR`. Both can be changed in `config/app.php`.
+
+
+## V5 inventory and batch operations
+
+V5 adds internal stock traceability without adding public checkout or human-use functionality. For an existing V4 database, open `/admin/system.php` and run **V5 inventory & batch control**, or import `database/migrations-004-inventory.sql` after the earlier migrations.
+
+Capabilities include:
+
+- Purchase orders linked to qualified/prospective suppliers
+- PO line items with ordered and received quantities
+- Receipt of each physical lot into `Quarantine`
+- Product, supplier, PO-line, batch/lot and optional COA traceability
+- Expiry/retest dates and storage-location records
+- Internal receipt/release checklist with exact batch-number-to-COA matching
+- Disposition states: `Quarantine`, `Released`, `Hold`, `Rejected`, `Depleted`
+- Stock movement ledger for adjustments, samples, write-offs, returns and corrections
+- Prevention of negative on-hand quantities
+- Automatic PO progress updates as lots are received
+- Dashboard counts for open purchase orders and quarantined lots
+
+The inventory `Released` state is an **internal operational disposition only**. It is not regulatory approval, a safety determination, clinical authorization, or permission for human use.
+
+
+## V6 commerce, customer accounts and PayFast checkout
+
+V6 adds the first complete transactional storefront layer while preserving the same request-driven PHP/MySQL hosting model. For an existing V5 database, open `/admin/system.php` and run **V6 commerce & checkout**, or import `database/migrations-005-commerce.sql` after the earlier migrations. Fresh installs can import `database/schema.sql` and then apply `database/migrations-005-commerce.sql` for the commerce tables.
+
+Capabilities include:
+
+- Public product detail pages and server-side shopping cart
+- Optional customer registration/login plus guest checkout
+- Product-specific retail price, tax and order-quantity controls
+- Online availability calculated only from V5 inventory in `Released` disposition
+- Time-limited stock reservations at checkout with lazy expiry (no background worker required)
+- Sales orders with customer/delivery snapshots and research-use acknowledgement
+- Hosted PayFast custom integration with sandbox/live modes
+- PayFast signature generation, merchant/amount checks, source validation, server confirmation and idempotent payment transaction logging
+- Customer order-status links and account order history
+- Admin order queue with exact inventory-batch reservations
+- One-click fulfilment that consumes the reserved lots and writes inventory `Sale` movements
+- Courier/service/tracking shipment records
+
+### PayFast configuration
+
+1. Copy `config/payment.example.php` to `config/payment.php`.
+2. Enter the sandbox Merchant ID, Merchant Key and passphrase from your PayFast Sandbox account.
+3. Set `config/app.php` `base_url` to the publicly reachable HTTPS URL used during testing. PayFast must be able to reach `/payment/payfast-itn.php`.
+4. Keep `sandbox => true` until the full payment and ITN flow has been tested.
+5. In admin, open **Commerce** to confirm payment configuration status.
+6. Only switch to live credentials and `sandbox => false` after the PayFast merchant account is approved and production launch checks are complete.
+
+The gateway integration uses PayFast hosted checkout. Payment-card and online-banking credentials are not collected or stored by Moleqra. The site only stores transaction references/statuses and the security-check results needed to reconcile an order.
+
+### Cart and stock behaviour
+
+Cart visibility requires all of the following:
+
+- the V4 publication gate passes;
+- the product is public;
+- V6 commerce is enabled for that product with a price; and
+- V5 has released, non-expired, non-retest-due inventory available after active reservations are deducted.
+
+Submitting checkout creates an order and reserves specific inventory batches for the configured reservation window. A validated successful PayFast ITN changes those reservations from `Active` to `Confirmed`. Admin fulfilment then consumes those exact batches and records the stock movements. Expired unpaid reservations are released lazily on later commerce requests, which avoids any requirement for cron or a long-running worker.
+
+The checkout remains explicitly research-use-only. It does not provide dosing, administration, treatment or therapeutic guidance. The working Terms and Privacy pages should receive final South African legal/POPIA review before public launch.

@@ -4,6 +4,8 @@ require __DIR__ . '/_header.php';
 require_once __DIR__ . '/../includes/sourcing.php';
 require_once __DIR__ . '/../includes/procurement.php';
 require_once __DIR__ . '/../includes/inventory.php';
+require_once __DIR__ . '/../includes/commerce.php';
+require_once __DIR__ . '/../includes/payments.php';
 
 $pdo = db();
 $error = '';
@@ -49,6 +51,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 run_sql_file($pdo, __DIR__ . '/../database/migrations-004-inventory.sql');
                 $message = 'Inventory and batch-control tables are ready.';
+            } elseif ($action === 'upgrade_commerce') {
+                if (!inventory_schema_ready($pdo)) {
+                    if (!sourcing_schema_ready($pdo)) run_sql_file($pdo, __DIR__ . '/../database/migrations-002-supplier-operations.sql');
+                    if (!procurement_schema_ready($pdo)) run_sql_file($pdo, __DIR__ . '/../database/migrations-003-procurement-launch.sql');
+                    run_sql_file($pdo, __DIR__ . '/../database/migrations-004-inventory.sql');
+                }
+                run_sql_file($pdo, __DIR__ . '/../database/migrations-005-commerce.sql');
+                $message = 'Commerce, customer, order and payment tables are ready.';
             } elseif ($action === 'seed_suppliers') {
                 run_sql_file($pdo, __DIR__ . '/../database/seed-supplier-prospects.sql');
                 $message = 'Initial supplier prospects were added without overwriting existing records.';
@@ -63,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $opsReady = sourcing_schema_ready($pdo);
 $procurementReady = procurement_schema_ready($pdo);
 $inventoryReady = inventory_schema_ready($pdo);
+$commerceReady = commerce_schema_ready($pdo);
 $supplierCount = 0;
 if ($pdo && db_table_exists('suppliers', $pdo)) {
     $supplierCount = (int)$pdo->query('SELECT COUNT(*) FROM suppliers')->fetchColumn();
@@ -95,6 +106,15 @@ if ($pdo && db_table_exists('suppliers', $pdo)) {
   <?php if (!$inventoryReady): ?>
   <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_inventory"><button class="btn primary" type="submit">Run V5 inventory upgrade</button></form>
   <?php endif; ?>
+</section>
+<section class="card">
+  <h2>V6 commerce &amp; checkout</h2>
+  <p class="muted">Adds customer accounts, public product commerce settings, server-side cart/checkout, stock reservations, sales orders, payment audit records and shipment records.</p>
+  <p><strong>Status:</strong> <?= $commerceReady ? 'Ready' : 'Upgrade required' ?></p>
+  <?php if (!$commerceReady): ?>
+  <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_commerce"><button class="btn primary" type="submit">Run V6 commerce upgrade</button></form>
+  <?php endif; ?>
+  <p class="muted" style="margin-top:1rem"><strong>PayFast:</strong> <?= payfast_configured() ? (payfast_sandbox() ? 'Configured · sandbox' : 'Configured · live') : 'Credentials not configured' ?></p>
 </section>
 <section class="card">
   <h2>Initial supplier prospects</h2>

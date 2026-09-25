@@ -3,3 +3,4 @@ storage/enquiries.jsonl
 storage/coa/*.pdf
 *.log
 .DS_Store
+config/payment.php

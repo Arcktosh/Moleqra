@@ -14,6 +14,7 @@ $user = admin_user();
 <title><?= e($adminTitle) ?> | Moleqra Admin</title>
 <link rel="stylesheet" href="../assets/css/site.css">
 <link rel="stylesheet" href="../assets/css/admin.css">
+<link rel="stylesheet" href="../assets/css/commerce-admin.css">
 </head>
 <body class="admin-body">
 <header class="admin-topbar">
@@ -30,6 +31,8 @@ $user = admin_user();
   <a class="<?= $current === 'launch.php' ? 'active' : '' ?>" href="launch.php">Launch</a>
   <a class="<?= in_array($current, ['inventory.php','inventory-batch.php'], true) ? 'active' : '' ?>" href="inventory.php">Inventory</a>
   <a class="<?= $current === 'purchase-orders.php' ? 'active' : '' ?>" href="purchase-orders.php">POs</a>
+  <a class="<?= $current === 'commerce.php' ? 'active' : '' ?>" href="commerce.php">Commerce</a>
+  <a class="<?= $current === 'orders.php' ? 'active' : '' ?>" href="orders.php">Orders</a>
   <a class="<?= $current === 'coa.php' ? 'active' : '' ?>" href="coa.php">COAs</a>
   <a class="<?= $current === 'enquiries.php' ? 'active' : '' ?>" href="enquiries.php">Enquiries</a>
   <a class="<?= $current === 'system.php' ? 'active' : '' ?>" href="system.php">System</a>

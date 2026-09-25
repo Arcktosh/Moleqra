@@ -1,0 +1,2 @@
+<?php
+require_once __DIR__.'/../includes/bootstrap.php';require_once __DIR__.'/../includes/commerce.php';$pdo=db();$token=(string)($_GET['token']??'');if($pdo&&commerce_schema_ready($pdo)){$o=commerce_order_by_token($pdo,$token);if($o&&$o['payment_status']==='Pending'){$pdo->prepare("UPDATE sales_orders SET status='Payment cancelled',cancelled_at=NOW() WHERE id=:id")->execute(['id'=>$o['id']]);}}header('Location: ../order.php?token='.rawurlencode($token));exit;
