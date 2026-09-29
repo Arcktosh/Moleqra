@@ -12,6 +12,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                 $probe=smtp_probe($cfg);
                 if(!$probe['ok'])throw new RuntimeException($probe['detail']);
                 $mailTestMessage=$probe['detail'].' Connection time: '.(int)$probe['elapsed_ms'].' ms.';
+            }elseif($action==='imap_probe'){
+                $probe=mailbox_probe();
+                if(!$probe['ok'])throw new RuntimeException($probe['detail']);
+                $mailTestMessage=$probe['detail'].' Connection time: '.(int)$probe['elapsed_ms'].' ms.';
             }elseif($action==='send_test_email'){
                 $recipient=trim((string)($_POST['recipient']??''));
                 if(!filter_var($recipient,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Enter a valid test recipient email address.');
@@ -38,6 +42,11 @@ $result=technical_launch_diagnostics($pdo);
       <input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>">
       <input type="hidden" name="action" value="smtp_probe">
       <button class="btn" type="submit">Test SMTP connection</button>
+    </form>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>">
+      <input type="hidden" name="action" value="imap_probe">
+      <button class="btn" type="submit">Test IMAP connection</button>
     </form>
     <form method="post" class="inline-select">
       <input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>">
