@@ -35,7 +35,7 @@ function outreach_campaign_edit_schema_ready(?PDO $pdo=null): bool
 
 function outreach_mail_ready(): bool
 {
-    $cfg=mail_config();return !empty($cfg['enabled']) && strtolower((string)($cfg['transport']??''))==='mail';
+    return mailer_delivery_ready();
 }
 
 function outreach_render(string $template,array $supplier): string
