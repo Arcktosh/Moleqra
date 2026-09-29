@@ -12,6 +12,27 @@ function outreach_schema_ready(?PDO $pdo=null): bool
     return true;
 }
 
+function outreach_column_exists(PDO $pdo,string $table,string $column): bool
+{
+    if(!preg_match('/^[a-zA-Z0-9_]+$/',$table.$column))return false;
+    try{
+        $stmt=$pdo->prepare('SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=:table AND COLUMN_NAME=:column LIMIT 1');
+        $stmt->execute(['table'=>$table,'column'=>$column]);
+        return (bool)$stmt->fetchColumn();
+    }catch(Throwable $e){
+        error_log('Moleqra outreach column check failed: '.$e->getMessage());
+        return false;
+    }
+}
+
+function outreach_campaign_edit_schema_ready(?PDO $pdo=null): bool
+{
+    $pdo ??= db();
+    return $pdo && outreach_schema_ready($pdo)
+        && outreach_column_exists($pdo,'supplier_outreach_campaigns','subject_template')
+        && outreach_column_exists($pdo,'supplier_outreach_campaigns','body_html');
+}
+
 function outreach_mail_ready(): bool
 {
     $cfg=mail_config();return !empty($cfg['enabled']) && strtolower((string)($cfg['transport']??''))==='mail';
@@ -32,13 +53,75 @@ function outreach_render(string $template,array $supplier): string
     return strtr($template,$vars);
 }
 
+function outreach_campaign_record(PDO $pdo,int $campaignId): ?array
+{
+    $content=outreach_campaign_edit_schema_ready($pdo)
+        ? "COALESCE(NULLIF(c.subject_template,''),t.subject_template) subject_template,COALESCE(NULLIF(c.body_html,''),t.body_html) body_html"
+        : 't.subject_template,t.body_html';
+    $stmt=$pdo->prepare("SELECT c.*,t.name template_name,$content FROM supplier_outreach_campaigns c JOIN supplier_outreach_templates t ON t.id=c.template_id WHERE c.id=:id LIMIT 1");
+    $stmt->execute(['id'=>$campaignId]);
+    return $stmt->fetch()?:null;
+}
+
+function outreach_campaign_send_started(PDO $pdo,int $campaignId): bool
+{
+    $stmt=$pdo->prepare("SELECT COUNT(*) FROM supplier_outreach_queue WHERE campaign_id=:id AND (attempts>0 OR status IN ('Sending','Sent'))");
+    $stmt->execute(['id'=>$campaignId]);
+    return (int)$stmt->fetchColumn()>0;
+}
+
+function outreach_campaign_editable(PDO $pdo,int $campaignId): bool
+{
+    $campaign=outreach_campaign_record($pdo,$campaignId);
+    if(!$campaign || $campaign['status']==='Completed')return false;
+    return !outreach_campaign_send_started($pdo,$campaignId);
+}
+
+function outreach_campaign_queue_stats(PDO $pdo,int $campaignId): array
+{
+    $stmt=$pdo->prepare("SELECT COUNT(*) total,
+        SUM(status='Pending') pending,
+        SUM(status='Sending') sending,
+        SUM(status='Sent') sent,
+        SUM(status='Failed') failed,
+        SUM(status='Skipped') skipped,
+        SUM(attempts>0) attempted
+        FROM supplier_outreach_queue WHERE campaign_id=:id");
+    $stmt->execute(['id'=>$campaignId]);$row=$stmt->fetch()?:[];
+    foreach(['total','pending','sending','sent','failed','skipped','attempted'] as $key)$row[$key]=(int)($row[$key]??0);
+    return $row;
+}
+
+function outreach_campaign_filter(array $campaign,array &$params): array
+{
+    $where=['s.email IS NOT NULL','s.email<>\'\'','s.outreach_email_enabled=1'];$params=[];
+    if(trim((string)($campaign['target_supplier_status']??''))!==''){$where[]='s.status=:status';$params['status']=$campaign['target_supplier_status'];}
+    if(trim((string)($campaign['target_region']??''))!==''){$where[]='s.region=:region';$params['region']=$campaign['target_region'];}
+    return $where;
+}
+
+function outreach_preview_supplier(PDO $pdo,?int $campaignId=null): array
+{
+    if($campaignId){
+        $stmt=$pdo->prepare('SELECT s.* FROM supplier_outreach_queue q JOIN suppliers s ON s.id=q.supplier_id WHERE q.campaign_id=:id ORDER BY q.id LIMIT 1');
+        $stmt->execute(['id'=>$campaignId]);$supplier=$stmt->fetch();if($supplier)return $supplier;
+        $campaign=outreach_campaign_record($pdo,$campaignId);
+        if($campaign){$params=[];$where=outreach_campaign_filter($campaign,$params);$stmt=$pdo->prepare('SELECT s.* FROM suppliers s WHERE '.implode(' AND ',$where).' ORDER BY s.name LIMIT 1');$stmt->execute($params);$supplier=$stmt->fetch();if($supplier)return $supplier;}
+    }
+    try{$supplier=$pdo->query("SELECT * FROM suppliers WHERE email IS NOT NULL AND email<>'' ORDER BY name LIMIT 1")->fetch();if($supplier)return $supplier;}catch(Throwable $e){}
+    return ['id'=>0,'name'=>'Example Supplier','contact_name'=>'Sales Team','email'=>'supplier@example.com','status'=>'Prospect','region'=>'South Africa'];
+}
+
+function outreach_preview_email(string $subjectTemplate,string $bodyTemplate,array $supplier): array
+{
+    $subject=outreach_render($subjectTemplate,$supplier);$body=outreach_render($bodyTemplate,$supplier);
+    return ['subject'=>$subject,'body_html'=>$body,'html'=>mailer_layout('Partnership enquiry',$body)];
+}
+
 function outreach_queue_campaign(PDO $pdo,int $campaignId): int
 {
-    $stmt=$pdo->prepare('SELECT c.*,t.subject_template,t.body_html FROM supplier_outreach_campaigns c JOIN supplier_outreach_templates t ON t.id=c.template_id WHERE c.id=:id');
-    $stmt->execute(['id'=>$campaignId]);$campaign=$stmt->fetch();if(!$campaign)throw new RuntimeException('Campaign not found.');
-    $where=['s.email IS NOT NULL','s.email<>\'\'','s.outreach_email_enabled=1'];$params=[];
-    if(trim((string)$campaign['target_supplier_status'])!==''){$where[]='s.status=:status';$params['status']=$campaign['target_supplier_status'];}
-    if(trim((string)$campaign['target_region'])!==''){$where[]='s.region=:region';$params['region']=$campaign['target_region'];}
+    $campaign=outreach_campaign_record($pdo,$campaignId);if(!$campaign)throw new RuntimeException('Campaign not found.');
+    $params=[];$where=outreach_campaign_filter($campaign,$params);
     $sql='SELECT s.* FROM suppliers s WHERE '.implode(' AND ',$where).' ORDER BY s.name';$s=$pdo->prepare($sql);$s->execute($params);$added=0;
     $insert=$pdo->prepare("INSERT IGNORE INTO supplier_outreach_queue(campaign_id,supplier_id,recipient,subject,body_html,status,scheduled_at) VALUES(:campaign,:supplier,:recipient,:subject,:body,'Pending',COALESCE(:start,NOW()))");
     foreach($s->fetchAll() as $supplier){
@@ -51,6 +134,37 @@ function outreach_queue_campaign(PDO $pdo,int $campaignId): int
         if($insert->rowCount()>0)$added++;
     }
     return $added;
+}
+
+function outreach_update_campaign_and_rebuild(PDO $pdo,int $campaignId,array $data): int
+{
+    if(!outreach_campaign_edit_schema_ready($pdo))throw new RuntimeException('Campaign editing upgrade is not installed.');
+    $pdo->beginTransaction();
+    try{
+        $campaignStmt=$pdo->prepare('SELECT id,status FROM supplier_outreach_campaigns WHERE id=:id FOR UPDATE');$campaignStmt->execute(['id'=>$campaignId]);$campaign=$campaignStmt->fetch();
+        if(!$campaign)throw new RuntimeException('Campaign not found.');
+        if($campaign['status']==='Completed')throw new RuntimeException('Completed campaigns cannot be edited. Create a new campaign for revised content.');
+        $queueStmt=$pdo->prepare('SELECT id,attempts,status FROM supplier_outreach_queue WHERE campaign_id=:id FOR UPDATE');$queueStmt->execute(['id'=>$campaignId]);
+        foreach($queueStmt->fetchAll() as $row){
+            if((int)$row['attempts']>0 || in_array((string)$row['status'],['Sending','Sent'],true))throw new RuntimeException('This campaign is locked because sending has already started. Pause it and create a new campaign for revised content.');
+        }
+        $data['id']=$campaignId;
+        $pdo->prepare('UPDATE supplier_outreach_campaigns SET name=:name,template_id=:template_id,subject_template=:subject_template,body_html=:body_html,target_supplier_status=:target_supplier_status,target_region=:target_region,daily_limit=:daily_limit,min_days_between_contacts=:min_days_between_contacts,follow_up_days=:follow_up_days,scheduled_start=:scheduled_start WHERE id=:id')->execute($data);
+        $pdo->prepare('DELETE FROM supplier_outreach_queue WHERE campaign_id=:id')->execute(['id'=>$campaignId]);
+        $added=outreach_queue_campaign($pdo,$campaignId);
+        $pdo->commit();return $added;
+    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+}
+
+function outreach_rebuild_campaign_queue(PDO $pdo,int $campaignId): int
+{
+    $campaign=outreach_campaign_record($pdo,$campaignId);if(!$campaign)throw new RuntimeException('Campaign not found.');
+    $data=[
+        'name'=>$campaign['name'],'template_id'=>$campaign['template_id'],'subject_template'=>$campaign['subject_template'],'body_html'=>$campaign['body_html'],
+        'target_supplier_status'=>$campaign['target_supplier_status'],'target_region'=>$campaign['target_region'],'daily_limit'=>$campaign['daily_limit'],
+        'min_days_between_contacts'=>$campaign['min_days_between_contacts'],'follow_up_days'=>$campaign['follow_up_days'],'scheduled_start'=>$campaign['scheduled_start'],
+    ];
+    return outreach_update_campaign_and_rebuild($pdo,$campaignId,$data);
 }
 
 function outreach_process_campaign(PDO $pdo,int $campaignId,?int $requestedLimit=null): array

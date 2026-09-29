@@ -110,6 +110,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 run_sql_file($pdo, __DIR__ . '/../database/migrations-008-automation-branding-seo.sql');
                 admin_audit($pdo, 'system.upgrade', 'database', 'v9', 'Applied V9 automation, branding and SEO migration');
                 $message = 'V9 prospect automation, customer status events, branding and SEO settings are ready.';
+            } elseif ($action === 'upgrade_campaign_editing') {
+                if (!outreach_schema_ready($pdo) || !branding_schema_ready($pdo) || !db_table_exists('order_status_events', $pdo)) {
+                    throw new RuntimeException('Run the V9 automation & branding upgrade first.');
+                }
+                run_sql_file($pdo, __DIR__ . '/../database/migrations-009-campaign-preview-editing.sql');
+                admin_audit($pdo, 'system.upgrade', 'database', 'v9.2', 'Applied campaign preview/editing migration');
+                $message = 'Campaign-specific subject/body snapshots, preview and safe scheduled-campaign editing are ready.';
             } elseif ($action === 'seed_suppliers') {
                 run_sql_file($pdo, __DIR__ . '/../database/seed-supplier-prospects.sql');
                 admin_audit($pdo, 'system.seed', 'suppliers', null, 'Seeded supplier prospects');
@@ -129,6 +136,7 @@ $commerceReady = commerce_schema_ready($pdo);
 $commercialOpsReady = commercial_ops_schema_ready($pdo);
 $storefrontReady = storefront_schema_ready($pdo);
 $v9Ready = $pdo && branding_schema_ready($pdo) && outreach_schema_ready($pdo) && db_table_exists('order_status_events',$pdo);
+$campaignEditingReady = $pdo && outreach_campaign_edit_schema_ready($pdo);
 $supplierCount = 0;
 if ($pdo && db_table_exists('suppliers', $pdo)) {
     $supplierCount = (int)$pdo->query('SELECT COUNT(*) FROM suppliers')->fetchColumn();
@@ -198,6 +206,14 @@ if ($pdo && db_table_exists('suppliers', $pdo)) {
   <?php if (!$v9Ready): ?>
   <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_automation_branding"><button class="btn primary" type="submit">Run V9 automation &amp; branding upgrade</button></form>
   <?php else: ?><p><a href="branding.php">Brand &amp; SEO</a> · <a href="outreach.php">Prospect outreach</a></p><?php endif; ?>
+</section>
+<section class="card">
+  <h2>V9.2 campaign preview &amp; editing</h2>
+  <p class="muted">Adds campaign-owned subject/body snapshots, branded live email previews, and safe editing/requeueing for scheduled campaigns before the first send attempt.</p>
+  <p><strong>Status:</strong> <?= $campaignEditingReady ? 'Ready' : 'Upgrade required' ?></p>
+  <?php if (!$campaignEditingReady): ?>
+  <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_campaign_editing"><button class="btn primary" type="submit" <?= $v9Ready ? '' : 'disabled' ?>>Run campaign preview/editing upgrade</button></form>
+  <?php else: ?><p><a href="outreach.php">Open campaign preview &amp; editing</a></p><?php endif; ?>
 </section>
 <section class="card">
   <h2>Initial supplier prospects</h2>
