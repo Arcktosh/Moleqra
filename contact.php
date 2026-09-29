@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/communications.php';
 
 $pageTitle = 'Contact';
 $pageDescription = 'Contact Moleqra regarding supplier partnerships, research catalogue enquiries and business matters.';
@@ -51,6 +52,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'message' => $message,
                     'ip_hash' => $record['ip_hash'],
                 ]);
+                if ($saved && communications_schema_ready($pdo)) {
+                    $enquiryId = (int)$pdo->lastInsertId();
+                    communication_capture_enquiry($pdo, $enquiryId, [
+                        'topic' => $topic,
+                        'name' => $name,
+                        'email' => $email,
+                        'message' => $message,
+                    ]);
+                }
             } catch (Throwable $e) {
                 error_log('Moleqra enquiry database save failed: ' . $e->getMessage());
             }
