@@ -17,12 +17,12 @@ return [
 
     'smtp' => [
         'host' => 'mail.example.com',
-        'port' => 587,
+        'port' => 25,
 
-        // tls = STARTTLS (normally port 587)
-        // ssl = implicit TLS / SMTPS (normally port 465)
-        // none = unencrypted SMTP; use only when your hosting provider explicitly requires it
-        'encryption' => 'tls',
+        // none = plain SMTP (commonly port 25 on shared hosting)
+        // tls = STARTTLS
+        // ssl = implicit TLS / SMTPS
+        'encryption' => 'none',
 
         'auth' => true,
 
@@ -44,21 +44,24 @@ return [
     ],
 
     // Optional inbound mailbox capture for the Communications back office.
-    // Requires the PHP IMAP extension on the hosting server.
+    // Native POP3 client; no PHP IMAP extension is required.
     'inbound' => [
         'enabled' => false,
+        'protocol' => 'pop3',
         'host' => 'mail.example.com',
-        'port' => 993,
+        'port' => 110,
 
-        // ssl | tls | none
-        'encryption' => 'ssl',
+        // none | tls | ssl
+        // Port 110 commonly uses none or STLS; port 995 commonly uses ssl.
+        'encryption' => 'none',
 
         'username' => 'support@example.com',
         'password' => 'replace-with-hosting-mailbox-password',
-        'folder' => 'INBOX',
 
-        // Keep certificate validation enabled in production.
-        'validate_cert' => true,
+        'timeout' => 15,
+        'verify_peer' => true,
+        'verify_peer_name' => true,
+        'allow_self_signed' => false,
 
         // Maximum recent messages inspected during each sync.
         'max_messages' => 50,
