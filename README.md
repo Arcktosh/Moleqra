@@ -186,8 +186,14 @@ Capabilities include:
 
 1. Copy `config/mail.example.php` to `config/mail.php`.
 2. Leave `enabled => false` or `transport => 'log'` during development. Notifications are still recorded in the database.
-3. When the host's outbound PHP mail is verified, set `enabled => true`, `transport => 'mail'`, and configure a valid From address.
-4. Notification delivery is synchronous by design so no worker or cron process is required.
+3. For production, native SMTP is recommended: set `enabled => true`, `transport => 'smtp'`, and configure the hosting mailbox SMTP host, port, encryption, username, password, From address and Reply-To address.
+4. STARTTLS on port 587 is configured with `encryption => 'tls'`; implicit TLS/SMTPS on port 465 uses `encryption => 'ssl'`.
+5. Keep TLS certificate verification enabled unless the hosting provider explicitly documents another requirement.
+6. Open **Admin → Diagnostics** and run **Test SMTP connection** first, then **Send test email**.
+7. The legacy `transport => 'mail'` option remains available for hosts with a working PHP `mail()` setup.
+8. Notification delivery is synchronous by design so no queue worker is required.
+
+SMTP is implemented natively with PHP stream sockets and does not require Composer or PHPMailer. The same configured transport is used for transactional order/customer email, account verification/password reset, supplier outreach, newsletter confirmations and newsletter campaigns. A successful SMTP test confirms connection/TLS/authentication; final inbox delivery still depends on the mail host and sender-domain SPF/DKIM/DMARC configuration.
 
 ### Shipping configuration
 
