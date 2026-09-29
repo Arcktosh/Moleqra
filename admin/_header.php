@@ -14,6 +14,8 @@ $user = admin_user();$adminLogo=branding_logo_url('../');
   <a class="<?= $current === 'suppliers.php' ? 'active' : '' ?>" href="suppliers.php">Suppliers</a>
   <a class="<?= in_array($current, ['sourcing.php','supplier-ops.php'], true) ? 'active' : '' ?>" href="sourcing.php">Sourcing</a>
   <a class="<?= $current === 'outreach.php' ? 'active' : '' ?>" href="outreach.php">Outreach</a>
+  <a class="<?= $current === 'newsletter.php' ? 'active' : '' ?>" href="newsletter.php">Newsletter</a>
+  <a class="<?= $current === 'community.php' ? 'active' : '' ?>" href="community.php">Community</a>
   <a class="<?= $current === 'procurement.php' ? 'active' : '' ?>" href="procurement.php">Procurement</a>
   <a class="<?= $current === 'launch.php' ? 'active' : '' ?>" href="launch.php">Launch</a>
   <a class="<?= in_array($current, ['inventory.php','inventory-batch.php'], true) ? 'active' : '' ?>" href="inventory.php">Inventory</a>
