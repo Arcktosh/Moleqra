@@ -9,4 +9,8 @@ return [
     // Newsletter uses a separate key so supplier outreach and customer marketing can be scheduled independently.
     'newsletter_key' => '',
     'newsletter_batch_limit' => 50,
+
+    // Optional authenticated HTTPS key for inbound mailbox synchronization.
+    // CLI cron does not require this key.
+    'mailbox_key' => '',
 ];
