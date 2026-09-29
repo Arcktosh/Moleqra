@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/smtp.php';
+require_once __DIR__ . '/communications.php';
 
 function mail_config(): array
 {
@@ -28,7 +29,7 @@ function mailer_schema_ready(?PDO $pdo = null): bool
     $pdo ??= db();return $pdo && db_table_exists('commerce_notifications',$pdo);
 }
 
-function mailer_send(PDO $pdo,string $type,string $recipient,string $subject,string $html,?int $orderId=null,?int $customerId=null): bool
+function mailer_send(PDO $pdo,string $type,string $recipient,string $subject,string $html,?int $orderId=null,?int $customerId=null,bool $mirrorCommunication=true): bool
 {
     $cfg=mail_config();$enabled=(bool)($cfg['enabled']??false);$transport=(string)($cfg['transport']??'log');
     if($orderId && mailer_schema_ready($pdo)){$check=$pdo->prepare("SELECT COUNT(*) FROM commerce_notifications WHERE order_id=:order AND notification_type=:type AND status IN ('Sent','Logged')");$check->execute(['order'=>$orderId,'type'=>$type]);if((int)$check->fetchColumn()>0)return true;}
@@ -37,7 +38,10 @@ function mailer_send(PDO $pdo,string $type,string $recipient,string $subject,str
         $stmt=$pdo->prepare('INSERT INTO commerce_notifications(order_id,customer_id,notification_type,recipient,subject,transport,status) VALUES(:order_id,:customer_id,:type,:recipient,:subject,:transport,:status)');
         $stmt->execute(['order_id'=>$orderId,'customer_id'=>$customerId,'type'=>$type,'recipient'=>$recipient,'subject'=>$subject,'transport'=>$transport,'status'=>$status]);$id=(int)$pdo->lastInsertId();
     }
-    if(!$enabled || $transport==='log')return true;
+    if(!$enabled || $transport==='log'){
+        if($mirrorCommunication && $customerId && communications_schema_ready($pdo))communication_record_outbound($pdo,$recipient,$subject,$html,['customer_id'=>$customerId,'source'=>'System email','status'=>'Logged']);
+        return true;
+    }
     $fromEmail=trim((string)($cfg['from_email']??config('contact_email','')));$fromName=trim((string)($cfg['from_name']??config('site_name','Moleqra')));$reply=trim((string)($cfg['reply_to']??''));
     if(!filter_var($recipient,FILTER_VALIDATE_EMAIL)||!filter_var($fromEmail,FILTER_VALIDATE_EMAIL)){
         if($id)$pdo->prepare("UPDATE commerce_notifications SET status='Failed',error_message='Mail addresses are not configured.' WHERE id=:id")->execute(['id'=>$id]);
@@ -59,6 +63,7 @@ function mailer_send(PDO $pdo,string $type,string $recipient,string $subject,str
         $error=$e->getMessage();$ok=false;error_log('Moleqra mail delivery failed: '.$error);
     }
     if($id)$pdo->prepare("UPDATE commerce_notifications SET status=:status,error_message=:error,sent_at=CASE WHEN :ok=1 THEN NOW() ELSE sent_at END WHERE id=:id")->execute(['status'=>$ok?'Sent':'Failed','error'=>$ok?null:substr((string)$error,0,1000),'ok'=>$ok?1:0,'id'=>$id]);
+    if($mirrorCommunication && $customerId && communications_schema_ready($pdo))communication_record_outbound($pdo,$recipient,$subject,$html,['customer_id'=>$customerId,'source'=>'System email','status'=>$ok?'Sent':'Failed','error'=>$ok?null:$error]);
     return $ok;
 }
 
