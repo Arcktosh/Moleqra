@@ -15,6 +15,8 @@ require_once __DIR__ . '/../includes/outreach_automation.php';
 require_once __DIR__ . '/../includes/branding.php';
 require_once __DIR__ . '/../includes/newsletter.php';
 require_once __DIR__ . '/../includes/community.php';
+require_once __DIR__ . '/../includes/communications.php';
+require_once __DIR__ . '/../includes/mailbox.php';
 
 $pdo = db();
 $error = '';
@@ -126,6 +128,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 run_sql_file($pdo, __DIR__ . '/../database/migrations-010-newsletter-community.sql');
                 admin_audit($pdo, 'system.upgrade', 'database', 'v10', 'Applied newsletter and community migration');
                 $message = 'Newsletter subscriptions, campaigns, product/community topics and moderation controls are ready.';
+            } elseif ($action === 'upgrade_communications') {
+                if (!newsletter_schema_ready($pdo) || !community_schema_ready($pdo)) {
+                    throw new RuntimeException('Run the V10 newsletter & research community upgrade first.');
+                }
+                run_sql_file($pdo, __DIR__ . '/../database/migrations-011-communications-center.sql');
+                admin_audit($pdo, 'system.upgrade', 'database', 'v11', 'Applied communications center migration');
+                $message = 'Communications threads, message history and inbound/outbound capture tables are ready.';
             } elseif ($action === 'seed_suppliers') {
                 run_sql_file($pdo, __DIR__ . '/../database/seed-supplier-prospects.sql');
                 admin_audit($pdo, 'system.seed', 'suppliers', null, 'Seeded supplier prospects');
@@ -147,6 +156,7 @@ $storefrontReady = storefront_schema_ready($pdo);
 $v9Ready = $pdo && branding_schema_ready($pdo) && outreach_schema_ready($pdo) && db_table_exists('order_status_events',$pdo);
 $campaignEditingReady = $pdo && outreach_campaign_edit_schema_ready($pdo);
 $communityReady = $pdo && newsletter_schema_ready($pdo) && community_schema_ready($pdo);
+$communicationsReady = $pdo && communications_schema_ready($pdo);
 $supplierCount = 0;
 if ($pdo && db_table_exists('suppliers', $pdo)) {
     $supplierCount = (int)$pdo->query('SELECT COUNT(*) FROM suppliers')->fetchColumn();
@@ -232,6 +242,14 @@ if ($pdo && db_table_exists('suppliers', $pdo)) {
   <?php if (!$communityReady): ?>
   <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_newsletter_community"><button class="btn primary" type="submit" <?= $campaignEditingReady ? '' : 'disabled' ?>>Run newsletter &amp; community upgrade</button></form>
   <?php else: ?><p><a href="newsletter.php">Newsletter</a> · <a href="community.php">Community moderation</a></p><?php endif; ?>
+</section>
+<section class="card">
+  <h2>V11 communications center</h2>
+  <p class="muted">Adds unified website-enquiry, customer and supplier communication threads; back-office SMTP replies; manual inbound capture; and optional IMAP mailbox synchronization.</p>
+  <p><strong>Status:</strong> <?= $communicationsReady ? 'Ready' : 'Upgrade required' ?></p>
+  <?php if (!$communicationsReady): ?>
+  <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_communications"><button class="btn primary" type="submit" <?= $communityReady ? '' : 'disabled' ?>>Run communications center upgrade</button></form>
+  <?php else: ?><p><a href="communications.php">Open Communications</a> · <a href="diagnostics.php">Mail diagnostics</a></p><?php endif; ?>
 </section>
 <section class="card">
   <h2>Initial supplier prospects</h2>
