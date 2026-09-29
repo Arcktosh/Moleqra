@@ -1,5 +1,5 @@
 <?php
-$rootPrefix='../';$pageTitle='Sign in | Moleqra';$pageRobots='noindex,nofollow';require_once __DIR__.'/../includes/bootstrap.php';require_once __DIR__.'/../includes/account_auth.php';$error='';if(customer_user()){header('Location: index.php');exit;}
+$rootPrefix='../';$pageTitle='Sign in';$pageRobots='noindex,nofollow';require_once __DIR__.'/../includes/bootstrap.php';require_once __DIR__.'/../includes/account_auth.php';$error='';if(customer_user()){header('Location: index.php');exit;}
 if($_SERVER['REQUEST_METHOD']==='POST'){
     if(!csrf_valid($_POST['csrf_token']??null))$error='Your session expired.';
     else{$result=customer_authenticate((string)($_POST['email']??''),(string)($_POST['password']??''));if($result['ok']){header('Location: index.php');exit;}$error=$result['reason']==='unverified'?'Please verify your email address before signing in.':'Email or password is incorrect.';}

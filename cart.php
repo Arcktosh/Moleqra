@@ -1,5 +1,5 @@
 <?php
-$pageTitle='Cart | Moleqra';$pageRobots='noindex,nofollow';require_once __DIR__.'/includes/bootstrap.php';require_once __DIR__.'/includes/commerce.php';$pdo=db();$error='';
+$pageTitle='Cart';$pageRobots='noindex,nofollow';require_once __DIR__.'/includes/bootstrap.php';require_once __DIR__.'/includes/commerce.php';$pdo=db();$error='';
 if($pdo&&commerce_schema_ready($pdo)&&$_SERVER['REQUEST_METHOD']==='POST'){
  if(!csrf_valid($_POST['csrf_token']??null))$error='Your session expired.';else{
   $action=(string)($_POST['action']??'');$productId=(int)($_POST['product_id']??0);$variantId=(int)($_POST['variant_id']??0);$qty=(float)($_POST['quantity']??0);

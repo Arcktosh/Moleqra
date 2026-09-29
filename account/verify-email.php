@@ -1,5 +1,5 @@
 <?php
-$rootPrefix='../';$pageTitle='Verify email | Moleqra';$pageRobots='noindex,nofollow';require_once __DIR__.'/../includes/bootstrap.php';require_once __DIR__.'/../includes/customer_security.php';$token=(string)($_GET['token']??'');$pdo=db();$verified=false;
+$rootPrefix='../';$pageTitle='Verify email';$pageRobots='noindex,nofollow';require_once __DIR__.'/../includes/bootstrap.php';require_once __DIR__.'/../includes/customer_security.php';$token=(string)($_GET['token']??'');$pdo=db();$verified=false;
 if($pdo&&($row=customer_security_consume_token($pdo,$token,'verify_email'))){$pdo->beginTransaction();try{$pdo->prepare('INSERT INTO customer_account_security(customer_id,email_verified_at) VALUES(:id,NOW()) ON DUPLICATE KEY UPDATE email_verified_at=NOW()')->execute(['id'=>$row['customer_id']]);$pdo->prepare('UPDATE customer_security_tokens SET used_at=NOW() WHERE id=:id')->execute(['id'=>$row['id']]);$pdo->commit();$verified=true;}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();}}
 if($verified){header('Location: login.php?verified=1');exit;}
 require __DIR__.'/../includes/header.php';?>

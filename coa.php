@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'COA Library | Moleqra';
+$pageTitle = 'COA Library';
 $pageDescription = 'Moleqra batch documentation and certificate of analysis library.';
 require_once __DIR__ . '/includes/bootstrap.php';
 $rows=[];$pdo=db();

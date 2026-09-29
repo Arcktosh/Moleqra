@@ -78,7 +78,7 @@ function commerce_cleanup_expired_reservations(PDO $pdo): void
 {
     $pdo->beginTransaction();
     try {
-        $stmt = $pdo->query("SELECT DISTINCT order_id FROM stock_reservations WHERE status='Active' AND expires_at IS NOT NULL AND expires_at < NOW() FOR UPDATE");
+        $stmt = $pdo->query("SELECT DISTINCT r.order_id FROM stock_reservations r JOIN sales_orders o ON o.id=r.order_id WHERE r.status='Active' AND r.expires_at IS NOT NULL AND r.expires_at < NOW() AND o.payment_status='Pending' FOR UPDATE");
         $orderIds = array_map('intval', array_column($stmt->fetchAll(), 'order_id'));
         if ($orderIds) {
             $ids = implode(',', $orderIds);
@@ -86,6 +86,12 @@ function commerce_cleanup_expired_reservations(PDO $pdo): void
             $pdo->exec("UPDATE sales_orders SET status='Expired',payment_status='Expired' WHERE id IN ($ids) AND payment_status='Pending'");
         }
         $pdo->commit();
+        if ($orderIds && function_exists('notify_order_expired')) {
+            foreach ($orderIds as $expiredOrderId) {
+                try { notify_order_expired($pdo, (int)$expiredOrderId); }
+                catch (Throwable $notifyError) { error_log('Moleqra expiry notification failed: ' . $notifyError->getMessage()); }
+            }
+        }
     } catch (Throwable $e) {
         if ($pdo->inTransaction()) $pdo->rollBack();
         error_log('Moleqra reservation cleanup failed: ' . $e->getMessage());

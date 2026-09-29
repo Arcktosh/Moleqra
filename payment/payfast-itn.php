@@ -4,4 +4,15 @@ $paramString=payfast_param_string($data,false);$signatureValid=isset($data['sign
 if(!$order){http_response_code(404);exit;}
 try{$payload=json_encode($data,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE);$stmt=$pdo->prepare('INSERT INTO payment_transactions(order_id,gateway,gateway_payment_id,gateway_status,amount_gross,amount_fee,amount_net,signature_valid,source_valid,amount_valid,server_valid,payload) VALUES(:order,\'payfast\',:pfid,:status,:gross,:fee,:net,:sig,:source,:amount,:server,:payload) ON DUPLICATE KEY UPDATE gateway_status=VALUES(gateway_status),signature_valid=VALUES(signature_valid),source_valid=VALUES(source_valid),amount_valid=VALUES(amount_valid),server_valid=VALUES(server_valid),payload=VALUES(payload),received_at=NOW()');$stmt->execute(['order'=>$order['id'],'pfid'=>trim((string)($data['pf_payment_id']??''))?:null,'status'=>(string)($data['payment_status']??''),'gross'=>$data['amount_gross']??null,'fee'=>$data['amount_fee']??null,'net'=>$data['amount_net']??null,'sig'=>$signatureValid?1:0,'source'=>$sourceValid?1:0,'amount'=>$amountValid?1:0,'server'=>$serverValid?1:0,'payload'=>$payload]);}catch(Throwable $e){error_log('Moleqra PayFast transaction log failed: '.$e->getMessage());http_response_code(500);exit;}
 if(!$signatureValid||!$sourceValid||!$amountValid||!$merchantValid||!$serverValid){error_log('Moleqra PayFast ITN rejected for '.$orderNo);http_response_code($serverValid?400:503);exit;}
-try{commerce_confirm_payment($pdo,(int)$order['id'],(string)($data['pf_payment_id']??''),(string)($data['payment_status']??''));if((string)($data['payment_status']??'')==='COMPLETE'){try{notify_payment_received($pdo,(int)$order['id']);}catch(Throwable $notifyError){error_log('Moleqra payment notification failed: '.$notifyError->getMessage());}}http_response_code(200);echo 'OK';}catch(Throwable $e){error_log('Moleqra PayFast ITN processing failed: '.$e->getMessage());http_response_code(500);}
+try{
+    $gatewayStatus=(string)($data['payment_status']??'');
+    commerce_confirm_payment($pdo,(int)$order['id'],(string)($data['pf_payment_id']??''),$gatewayStatus);
+    try{
+        if($gatewayStatus==='COMPLETE'){
+            notify_payment_received($pdo,(int)$order['id']);
+            $state=$pdo->prepare('SELECT status FROM sales_orders WHERE id=:id');$state->execute(['id'=>$order['id']]);if((string)$state->fetchColumn()==='Paid - stock review')notify_stock_review($pdo,(int)$order['id']);
+        }elseif($gatewayStatus==='FAILED')notify_payment_failed($pdo,(int)$order['id']);
+        elseif($gatewayStatus==='CANCELLED')notify_payment_cancelled($pdo,(int)$order['id']);
+    }catch(Throwable $notifyError){error_log('Moleqra payment status notification failed: '.$notifyError->getMessage());}
+    http_response_code(200);echo 'OK';
+}catch(Throwable $e){error_log('Moleqra PayFast ITN processing failed: '.$e->getMessage());http_response_code(500);}

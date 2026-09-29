@@ -4,19 +4,23 @@ $pageTitle = $pageTitle ?? config('site_name');
 $rootPrefix = $rootPrefix ?? '';
 require_once __DIR__ . '/commerce.php';
 require_once __DIR__ . '/seo.php';
-$pageDescription = $pageDescription ?? 'Moleqra provides research-use-only peptide materials with batch documentation and transparent quality controls.';
+require_once __DIR__ . '/site_seo.php';
+$pageDescription = $pageDescription ?? site_seo_default_description();
 $pageRobots=$pageRobots??null;
 $script=(string)($_SERVER['PHP_SELF']??'');$basename=basename($script);
-if($pageRobots===null && (str_contains($script,'/account/')||str_contains($script,'/payment/')||in_array($basename,['order.php','invoice.php','invoice-pdf.php','refund-receipt.php'],true)))$pageRobots='noindex,nofollow';
+if($pageRobots===null && (str_contains($script,'/account/')||str_contains($script,'/payment/')||str_contains($script,'/automation/')||in_array($basename,['order.php','invoice.php','invoice-pdf.php','refund-receipt.php'],true)))$pageRobots='noindex,nofollow';
+if($pageRobots===null)$pageRobots=site_seo_global_robots();
 $canonicalUrl=$canonicalUrl??'';
 if($canonicalUrl==='' && $rootPrefix==='' && seo_base_url()!=='')$canonicalUrl=seo_url($basename);
 $referrerPolicy=$referrerPolicy??'';
-$structuredData=$structuredData??[];
-if(!is_array($structuredData))$structuredData=[];
+$structuredData=$structuredData??[];if(!is_array($structuredData))$structuredData=[];
 if($basename==='index.php' && $rootPrefix==='' && seo_base_url()!==''){
-    $structuredData[]=['@context'=>'https://schema.org','@type'=>'Organization','name'=>(string)config('company_name','Moleqra'),'url'=>seo_base_url(),'email'=>(string)config('contact_email','')];
+    $seoSettings=site_seo_settings();
+    $org=['@context'=>'https://schema.org','@type'=>'Organization','name'=>(string)($seoSettings['organization_name']??config('company_name','Moleqra')),'url'=>seo_base_url(),'email'=>(string)config('contact_email','')];
+    $logo=branding_logo_path();if($logo!=='')$org['logo']=seo_url($logo);$structuredData[]=$org;
     $structuredData[]=['@context'=>'https://schema.org','@type'=>'WebSite','name'=>(string)config('site_name','Moleqra'),'url'=>seo_base_url()];
 }
+$documentTitle=site_seo_title((string)$pageTitle);$ogImage=site_seo_og_image_url();$brandLogo=branding_logo_url($rootPrefix);
 ?>
 <!doctype html>
 <html lang="en-ZA">
@@ -25,22 +29,24 @@ if($basename==='index.php' && $rootPrefix==='' && seo_base_url()!==''){
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="<?= e($pageDescription) ?>">
     <?php if($pageRobots): ?><meta name="robots" content="<?= e($pageRobots) ?>"><?php endif; ?>
-    <meta name="theme-color" content="#0b1020">
+    <meta name="theme-color" content="<?=e(branding_settings()['background_color'])?>">
     <?php if($referrerPolicy): ?><meta name="referrer" content="<?= e($referrerPolicy) ?>"><?php endif; ?>
     <meta property="og:type" content="website">
-    <meta property="og:title" content="<?= e($pageTitle) ?>">
+    <meta property="og:title" content="<?= e($documentTitle) ?>">
     <meta property="og:description" content="<?= e($pageDescription) ?>">
     <?php if($canonicalUrl): ?><meta property="og:url" content="<?= e($canonicalUrl) ?>"><link rel="canonical" href="<?= e($canonicalUrl) ?>"><?php endif; ?>
-    <title><?= e($pageTitle) ?></title>
+    <?php if($ogImage): ?><meta property="og:image" content="<?=e($ogImage)?>"><?php endif; ?>
+    <title><?= e($documentTitle) ?></title>
     <link rel="stylesheet" href="<?= e($rootPrefix) ?>assets/css/site.css">
     <link rel="stylesheet" href="<?= e($rootPrefix) ?>assets/css/commerce.css">
+    <style><?=branding_css_variables()?></style>
     <?php foreach($structuredData as $schema): ?><script type="application/ld+json"><?= seo_json($schema) ?></script><?php endforeach; ?>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header">
     <div class="container nav-wrap">
-        <a class="brand" href="<?= e($rootPrefix) ?>index.php" aria-label="Moleqra home"><span class="brand-mark" aria-hidden="true">M</span><span class="brand-word">MOLEQRA</span></a>
+        <a class="brand" href="<?= e($rootPrefix) ?>index.php" aria-label="<?=e(config('site_name','Moleqra'))?> home"><?php if($brandLogo):?><img class="brand-logo" src="<?=e($brandLogo)?>" alt="" aria-hidden="true"><?php else:?><span class="brand-mark" aria-hidden="true">M</span><?php endif;?><span class="brand-word"><?=e(strtoupper((string)config('site_name','Moleqra')))?></span></a>
         <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
         <nav id="primary-nav" class="primary-nav" aria-label="Primary navigation">
             <a href="<?= e($rootPrefix) ?>catalog.php"<?= nav_active('catalog.php') ?>>Catalog</a>

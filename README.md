@@ -254,3 +254,83 @@ For a new database apply, in order:
 7. `database/migrations-007-storefront-hardening.sql`
 
 The entire V8 runtime remains ordinary PHP requests plus MySQL. There is no Node runtime, Composer runtime dependency, daemon, queue worker, process manager or required service restart.
+
+## V9 automation, branding and SEO controls
+
+V9 adds supplier prospect-email automation, customer order-status feedback, database-backed branding, and site-wide SEO/robots controls. For an existing V8 database, open `/admin/system.php` and run **V9 automation & branding upgrade**, or import `database/migrations-008-automation-branding-seo.sql` after migration 007.
+
+Capabilities include:
+
+- Admin-managed supplier outreach email templates and campaigns
+- Prospect queues filtered by supplier status/region, valid email, and outreach opt-in
+- Per-campaign daily limits (hard-capped at 50/day), minimum contact spacing, scheduled starts and follow-up dates
+- Supplier-level outreach suppression / opt-out controls
+- Manual **Send next batch** control plus optional cron/HTTPS automation using `automation/outreach.php`
+- Automatic supplier outreach entries written back to the existing supplier timeline
+- Customer order-status event history and branded status emails for order creation, payment confirmation/failure/cancellation, stock-review holds, reservation expiry, dispatch, delivery and processed refunds
+- Customer-facing order timeline on secure order-status pages
+- Admin-configurable site logo, site name and colour palette without editing CSS/PHP
+- The same logo/brand palette used in public navigation, admin navigation and transactional email layout
+- Admin-managed SEO defaults, organisation name, Open Graph image, global indexing switch and extra robots exclusions
+- Dynamic `robots.txt` that blocks all crawling while indexing is disabled
+- Dynamic sitemap publishing only when indexing, sitemap generation and the HTTPS base URL are enabled
+
+### Prospect outreach automation
+
+1. Configure and test outbound email using `config/mail.php` first. Automated prospect sending refuses to run unless `enabled => true` and `transport => 'mail'`.
+2. Open **Admin → Outreach** and review/edit the seeded **Formal first contact** template.
+3. Create a campaign, select the target supplier status/region, daily limit, minimum contact spacing and optional start time.
+4. Creating a campaign snapshots the current subject/body for each eligible supplier into the campaign queue.
+5. Set the campaign to **Running**.
+6. Either use **Send next batch** in admin or schedule the PHP automation endpoint.
+
+For CLI scheduling:
+
+```bash
+php /absolute/path/to/automation/outreach.php
+```
+
+For HTTPS scheduling, copy `config/automation.example.php` to `config/automation.php`, generate a long random `outreach_key`, and call `/automation/outreach.php` with:
+
+```text
+Authorization: Bearer <outreach_key>
+```
+
+No campaign sends while it is Draft or Paused. A supplier with automated outreach disabled is skipped even if they were queued earlier. This is an optional scheduled task; the storefront, cart, checkout, PayFast ITN and order fulfilment flows do not depend on cron.
+
+### Branding
+
+Use **Admin → Brand & SEO** to configure:
+
+- site name;
+- uploaded PNG/JPEG/GIF/WebP logo;
+- primary and secondary accent colours;
+- background and surface colours;
+- primary and muted text colours.
+
+V9 automatically uses the latest repository logo asset when it is present; the release ZIP also includes a packaged Moleqra logo fallback under `assets/branding/moleqra-logo.png`. Uploaded logos are written to `assets/branding/`, which blocks PHP-like executable extensions and directory indexing through its `.htaccess` file.
+
+### SEO and robots
+
+The same **Brand & SEO** screen controls the default title suffix, meta description, organisation name, Open Graph image, sitemap availability, global indexing permission, and additional `Disallow` paths.
+
+Indexing defaults to **off**. While disabled, `/robots.txt` returns `Disallow: /` and public pages receive a `noindex,nofollow` meta directive. This is intentional for development and staging. Enable indexing only after the final HTTPS `base_url`, catalogue, legal text, COAs and product metadata have been reviewed.
+
+### Customer order feedback
+
+V9 extends the existing transactional email layer rather than adding another mail system. Important state changes are recorded in `order_status_events`, displayed on the secure customer order-status page, and passed through the existing `mailer_send()` audit/delivery path. Delivery remains synchronous through the configured PHP mail transport and therefore requires no persistent queue worker.
+
+### Fresh database sequence
+
+For a new database apply, in order:
+
+1. `database/schema.sql`
+2. `database/migrations-002-supplier-operations.sql`
+3. `database/migrations-003-procurement-launch.sql`
+4. `database/migrations-004-inventory.sql`
+5. `database/migrations-005-commerce.sql`
+6. `database/migrations-006-commercial-operations.sql`
+7. `database/migrations-007-storefront-hardening.sql`
+8. `database/migrations-008-automation-branding-seo.sql`
+
+V9 remains compatible with ordinary shared-hosting PHP + MySQL. There is no Node runtime, npm build, persistent daemon, Redis instance, queue worker or service restart requirement.

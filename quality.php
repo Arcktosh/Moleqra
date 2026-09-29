@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'Quality Framework | Moleqra';
+$pageTitle = 'Quality Framework';
 $pageDescription = 'Moleqra supplier qualification and batch documentation framework for research-use-only materials.';
 require __DIR__ . '/includes/header.php';
 ?>

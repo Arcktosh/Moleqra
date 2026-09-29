@@ -1,5 +1,5 @@
 <?php
-$pageTitle='Checkout | Moleqra';$pageRobots='noindex,nofollow';
+$pageTitle='Checkout';$pageRobots='noindex,nofollow';
 require_once __DIR__.'/includes/bootstrap.php';
 require_once __DIR__.'/includes/commerce.php';
 require_once __DIR__.'/includes/account_auth.php';

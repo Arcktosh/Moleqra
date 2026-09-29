@@ -7,3 +7,4 @@ require_once __DIR__ . '/storefront.php';
 require_once __DIR__ . '/shipping.php';
 require_once __DIR__ . '/commerce_orders.php';
 require_once __DIR__ . '/commerce_fulfilment.php';
+require_once __DIR__ . '/order_feedback.php';

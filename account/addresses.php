@@ -1,5 +1,5 @@
 <?php
-$rootPrefix='../';$pageTitle='Saved addresses | Moleqra';require_once __DIR__.'/../includes/bootstrap.php';require_once __DIR__.'/../includes/account_auth.php';require_once __DIR__.'/../includes/customer_addresses.php';
+$rootPrefix='../';$pageTitle='Saved addresses';require_once __DIR__.'/../includes/bootstrap.php';require_once __DIR__.'/../includes/account_auth.php';require_once __DIR__.'/../includes/customer_addresses.php';
 $user=customer_user();if(!$user){header('Location: login.php');exit;}$pdo=db();$error='';$editId=(int)($_GET['edit']??$_POST['address_id']??0);
 if($_SERVER['REQUEST_METHOD']==='POST'){
     if(!csrf_valid($_POST['csrf_token']??null))$error='Your session expired.';else{try{$action=(string)($_POST['action']??'save');if($action==='delete'){customer_delete_address($pdo,(int)$user['id'],$editId);header('Location: addresses.php?deleted=1');exit;}$data=$_POST;$data['is_default']=isset($_POST['is_default']);customer_save_address($pdo,(int)$user['id'],$data,$editId?:null);header('Location: addresses.php?saved=1');exit;}catch(Throwable $e){$error=$e instanceof RuntimeException?$e->getMessage():'The address could not be saved.';}}

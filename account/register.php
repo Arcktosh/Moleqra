@@ -1,5 +1,5 @@
 <?php
-$rootPrefix='../';$pageTitle='Create account | Moleqra';$pageRobots='noindex,nofollow';require_once __DIR__.'/../includes/bootstrap.php';require_once __DIR__.'/../includes/account_auth.php';require_once __DIR__.'/../includes/customer_security.php';$error='';if(customer_user()){header('Location: index.php');exit;}
+$rootPrefix='../';$pageTitle='Create account';$pageRobots='noindex,nofollow';require_once __DIR__.'/../includes/bootstrap.php';require_once __DIR__.'/../includes/account_auth.php';require_once __DIR__.'/../includes/customer_security.php';$error='';if(customer_user()){header('Location: index.php');exit;}
 if($_SERVER['REQUEST_METHOD']==='POST'){
     if(!csrf_valid($_POST['csrf_token']??null))$error='Your session expired.';else{try{$id=customer_register($_POST);try{customer_send_verification(db(),$id);}catch(Throwable $mailError){error_log('Moleqra verification send failed: '.$mailError->getMessage());}if((bool)commerce_config('require_verified_email',false)){header('Location: login.php?verify_required=1');exit;}$_SESSION['customer_id']=$id;session_regenerate_id(true);header('Location: index.php?registered=1');exit;}catch(Throwable $e){$error=$e instanceof RuntimeException?$e->getMessage():'Could not create account.';}}
 }

@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'Terms | Moleqra';
+$pageTitle = 'Terms';
 $pageDescription = 'Moleqra website, research-use-only and commerce terms.';
 require __DIR__ . '/includes/header.php';
 ?>

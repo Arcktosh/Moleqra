@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'Privacy | Moleqra';
+$pageTitle = 'Privacy';
 $pageDescription = 'Moleqra website and commerce privacy notice.';
 require __DIR__ . '/includes/header.php';
 ?>

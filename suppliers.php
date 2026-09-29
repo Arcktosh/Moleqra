@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'Supplier Partnerships | Moleqra';
+$pageTitle = 'Supplier Partnerships';
 $pageDescription = 'Supplier and private-label partnership requirements for Moleqra research materials.';
 require __DIR__ . '/includes/header.php';
 ?>

@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'About | Moleqra';
+$pageTitle = 'About';
 $pageDescription = 'About Moleqra and its research-use-only catalogue approach.';
 require __DIR__ . '/includes/header.php';
 ?>

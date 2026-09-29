@@ -1,5 +1,5 @@
 <?php
-$pageTitle='Research Catalogue | Moleqra';$pageDescription='Browse Moleqra research-use-only materials, pack sizes, batch-documentation status and released stock availability.';
+$pageTitle='Research Catalogue';$pageDescription='Browse research-use-only materials, pack sizes, batch-documentation status and released stock availability.';
 require_once __DIR__.'/includes/bootstrap.php';require_once __DIR__.'/includes/procurement.php';require_once __DIR__.'/includes/commerce.php';require_once __DIR__.'/includes/seo.php';
 $pdo=db();$commerceReady=$pdo&&commerce_schema_ready($pdo);$products=[];$q=trim((string)($_GET['q']??''));$category=trim((string)($_GET['category']??''));$sort=(string)($_GET['sort']??'featured');
 if($pdo){try{$products=$commerceReady&&commerce_enabled()?commerce_public_products($pdo):$pdo->query('SELECT id,sku,name,category,format,status,purity_label,description FROM products WHERE is_public=1 ORDER BY sort_order,name')->fetchAll();if(!$commerceReady&&procurement_schema_ready($pdo))$products=array_values(array_filter($products,fn($p)=>product_publication_gate($pdo,(int)$p['id'])['allowed']));}catch(Throwable $e){$products=[];}}

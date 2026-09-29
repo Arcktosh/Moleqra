@@ -1,10 +1,10 @@
 <?php
-$pageTitle='Product | Moleqra';require_once __DIR__.'/includes/bootstrap.php';require_once __DIR__.'/includes/commerce.php';require_once __DIR__.'/includes/seo.php';
+$pageTitle='Product';require_once __DIR__.'/includes/bootstrap.php';require_once __DIR__.'/includes/commerce.php';require_once __DIR__.'/includes/seo.php';
 $pdo=db();$id=(int)($_GET['id']??0);$slug=trim((string)($_GET['slug']??''));$product=null;
 if($pdo&&commerce_schema_ready($pdo)){$product=$slug!==''&&function_exists('storefront_product_by_slug')?storefront_product_by_slug($pdo,$slug):commerce_product($pdo,$id);}
-if(!$product){http_response_code(404);$pageTitle='Product unavailable | Moleqra';$pageRobots='noindex,follow';}
+if(!$product){http_response_code(404);$pageTitle='Product unavailable';$pageRobots='noindex,follow';}
 $related=[];$offers=[];
-if($product){$pageTitle=($product['meta_title']??'')?:$product['name'].' | Moleqra';$pageDescription=($product['meta_description']??'')?:storefront_summary($product);$canonicalUrl=seo_product_url($product);if(isset($product['seo_indexable'])&&!$product['seo_indexable'])$pageRobots='noindex,follow';
+if($product){$pageTitle=($product['meta_title']??'')?:$product['name'];$pageDescription=($product['meta_description']??'')?:storefront_summary($product);$canonicalUrl=seo_product_url($product);if(isset($product['seo_indexable'])&&!$product['seo_indexable'])$pageRobots='noindex,follow';
     $variants=$product['variants']?:[];if(!$variants){$fallback=commerce_variant($pdo,$product,0);if($fallback)$variants=[$fallback];}
     foreach($variants as &$variant){$variant['available_qty']=commerce_variant_available_quantity($pdo,(int)$product['id'],$variant);$offer=seo_offer_schema($variant,(float)$variant['available_qty']);if($canonicalUrl!=='')$offer['url']=$canonicalUrl;$offers[]=$offer;}unset($variant);
     $structuredData=[seo_product_schema($product,$offers)];$related=function_exists('storefront_related_products')?storefront_related_products($pdo,(int)$product['id'],4):[];

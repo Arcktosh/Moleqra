@@ -4,36 +4,23 @@ require_once __DIR__ . '/../includes/audit.php';
 require_admin();
 $adminTitle = $adminTitle ?? 'Admin';
 $current = basename($_SERVER['PHP_SELF'] ?? 'index.php');
-$user = admin_user();
+$user = admin_user();$adminLogo=branding_logo_url('../');
 ?>
-<!doctype html>
-<html lang="en-ZA">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex,nofollow">
-<title><?= e($adminTitle) ?> | Moleqra Admin</title>
-<link rel="stylesheet" href="../assets/css/site.css">
-<link rel="stylesheet" href="../assets/css/admin.css">
-<link rel="stylesheet" href="../assets/css/commerce-admin.css">
-</head>
-<body class="admin-body">
-<header class="admin-topbar">
-  <a class="brand" href="index.php"><span class="brand-mark">M</span><span class="brand-word">MOLEQRA ADMIN</span></a>
-  <div class="admin-user"><span><?= e($user['display_name'] ?? '') ?></span><a href="../index.php" target="_blank" rel="noopener">View site</a></div>
-</header>
-<div class="admin-shell">
-<aside class="admin-sidebar" aria-label="Admin navigation">
+<!doctype html><html lang="en-ZA"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title><?= e($adminTitle) ?> | <?=e(config('site_name','Moleqra'))?> Admin</title><link rel="stylesheet" href="../assets/css/site.css"><link rel="stylesheet" href="../assets/css/admin.css"><link rel="stylesheet" href="../assets/css/commerce-admin.css"><style><?=branding_css_variables()?></style></head>
+<body class="admin-body"><header class="admin-topbar"><a class="brand" href="index.php"><?php if($adminLogo):?><img class="brand-logo" src="<?=e($adminLogo)?>" alt=""><?php else:?><span class="brand-mark">M</span><?php endif;?><span class="brand-word"><?=e(strtoupper((string)config('site_name','Moleqra')))?> ADMIN</span></a><div class="admin-user"><span><?= e($user['display_name'] ?? '') ?></span><a href="../index.php" target="_blank" rel="noopener">View site</a></div></header>
+<div class="admin-shell"><aside class="admin-sidebar" aria-label="Admin navigation">
   <a class="<?= $current === 'index.php' ? 'active' : '' ?>" href="index.php">Dashboard</a>
   <a class="<?= $current === 'products.php' ? 'active' : '' ?>" href="products.php">Products</a>
   <a class="<?= $current === 'suppliers.php' ? 'active' : '' ?>" href="suppliers.php">Suppliers</a>
   <a class="<?= in_array($current, ['sourcing.php','supplier-ops.php'], true) ? 'active' : '' ?>" href="sourcing.php">Sourcing</a>
+  <a class="<?= $current === 'outreach.php' ? 'active' : '' ?>" href="outreach.php">Outreach</a>
   <a class="<?= $current === 'procurement.php' ? 'active' : '' ?>" href="procurement.php">Procurement</a>
   <a class="<?= $current === 'launch.php' ? 'active' : '' ?>" href="launch.php">Launch</a>
   <a class="<?= in_array($current, ['inventory.php','inventory-batch.php'], true) ? 'active' : '' ?>" href="inventory.php">Inventory</a>
   <a class="<?= $current === 'purchase-orders.php' ? 'active' : '' ?>" href="purchase-orders.php">POs</a>
   <a class="<?= $current === 'commerce.php' ? 'active' : '' ?>" href="commerce.php">Commerce</a>
   <a class="<?= $current === 'storefront.php' ? 'active' : '' ?>" href="storefront.php">Storefront</a>
+  <a class="<?= $current === 'branding.php' ? 'active' : '' ?>" href="branding.php">Brand &amp; SEO</a>
   <a class="<?= $current === 'orders.php' ? 'active' : '' ?>" href="orders.php">Orders</a>
   <a class="<?= $current === 'customers.php' ? 'active' : '' ?>" href="customers.php">Customers</a>
   <a class="<?= $current === 'payments.php' ? 'active' : '' ?>" href="payments.php">Payments</a>
@@ -46,5 +33,4 @@ $user = admin_user();
   <a class="<?= $current === 'audit.php' ? 'active' : '' ?>" href="audit.php">Audit log</a>
   <a class="<?= $current === 'system.php' ? 'active' : '' ?>" href="system.php">System</a>
   <form method="post" action="logout.php"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><button type="submit" class="admin-link-button">Sign out</button></form>
-</aside>
-<main class="admin-main">
+</aside><main class="admin-main">

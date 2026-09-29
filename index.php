@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'Moleqra | Research Materials';
+$pageTitle = 'Research Materials';
 $pageDescription = 'Moleqra is building a documented, research-use-only peptide catalogue for laboratories and qualified research buyers.';
 require __DIR__ . '/includes/header.php';
 ?>

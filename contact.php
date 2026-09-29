@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/bootstrap.php';
 
-$pageTitle = 'Contact | Moleqra';
+$pageTitle = 'Contact';
 $pageDescription = 'Contact Moleqra regarding supplier partnerships, research catalogue enquiries and business matters.';
 $errors = [];
 $success = false;

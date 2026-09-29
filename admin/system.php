@@ -11,6 +11,8 @@ require_once __DIR__ . '/../includes/mailer.php';
 require_once __DIR__ . '/../includes/courier.php';
 require_once __DIR__ . '/../includes/storefront.php';
 require_once __DIR__ . '/../includes/audit.php';
+require_once __DIR__ . '/../includes/outreach_automation.php';
+require_once __DIR__ . '/../includes/branding.php';
 
 $pdo = db();
 $error = '';
@@ -90,6 +92,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 run_sql_file($pdo, __DIR__ . '/../database/migrations-007-storefront-hardening.sql');
                 admin_audit($pdo, 'system.upgrade', 'database', 'v8', 'Applied V8 storefront hardening migration');
                 $message = 'V8 storefront, variants, account recovery and audit tables are ready.';
+            } elseif ($action === 'upgrade_automation_branding') {
+                if (!storefront_schema_ready($pdo)) {
+                    if (!commercial_ops_schema_ready($pdo)) {
+                        if (!commerce_schema_ready($pdo)) {
+                            if (!inventory_schema_ready($pdo)) {
+                                if (!sourcing_schema_ready($pdo)) run_sql_file($pdo, __DIR__ . '/../database/migrations-002-supplier-operations.sql');
+                                if (!procurement_schema_ready($pdo)) run_sql_file($pdo, __DIR__ . '/../database/migrations-003-procurement-launch.sql');
+                                run_sql_file($pdo, __DIR__ . '/../database/migrations-004-inventory.sql');
+                            }
+                            run_sql_file($pdo, __DIR__ . '/../database/migrations-005-commerce.sql');
+                        }
+                        run_sql_file($pdo, __DIR__ . '/../database/migrations-006-commercial-operations.sql');
+                    }
+                    run_sql_file($pdo, __DIR__ . '/../database/migrations-007-storefront-hardening.sql');
+                }
+                run_sql_file($pdo, __DIR__ . '/../database/migrations-008-automation-branding-seo.sql');
+                admin_audit($pdo, 'system.upgrade', 'database', 'v9', 'Applied V9 automation, branding and SEO migration');
+                $message = 'V9 prospect automation, customer status events, branding and SEO settings are ready.';
             } elseif ($action === 'seed_suppliers') {
                 run_sql_file($pdo, __DIR__ . '/../database/seed-supplier-prospects.sql');
                 admin_audit($pdo, 'system.seed', 'suppliers', null, 'Seeded supplier prospects');
@@ -108,6 +128,7 @@ $inventoryReady = inventory_schema_ready($pdo);
 $commerceReady = commerce_schema_ready($pdo);
 $commercialOpsReady = commercial_ops_schema_ready($pdo);
 $storefrontReady = storefront_schema_ready($pdo);
+$v9Ready = $pdo && branding_schema_ready($pdo) && outreach_schema_ready($pdo) && db_table_exists('order_status_events',$pdo);
 $supplierCount = 0;
 if ($pdo && db_table_exists('suppliers', $pdo)) {
     $supplierCount = (int)$pdo->query('SELECT COUNT(*) FROM suppliers')->fetchColumn();
@@ -168,6 +189,15 @@ if ($pdo && db_table_exists('suppliers', $pdo)) {
   <?php if (!$storefrontReady): ?>
   <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_storefront"><button class="btn primary" type="submit">Run V8 storefront upgrade</button></form>
   <?php else: ?><p><a href="storefront.php">Open Storefront</a> · <a href="diagnostics.php">Run diagnostics</a></p><?php endif; ?>
+</section>
+
+<section class="card">
+  <h2>V9 automation, branding &amp; SEO</h2>
+  <p class="muted">Adds supplier outreach campaigns/queues, customer order-status events, database-backed logo and colour settings, site-wide SEO defaults, and robots/sitemap controls.</p>
+  <p><strong>Status:</strong> <?= $v9Ready ? 'Ready' : 'Upgrade required' ?></p>
+  <?php if (!$v9Ready): ?>
+  <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_automation_branding"><button class="btn primary" type="submit">Run V9 automation &amp; branding upgrade</button></form>
+  <?php else: ?><p><a href="branding.php">Brand &amp; SEO</a> · <a href="outreach.php">Prospect outreach</a></p><?php endif; ?>
 </section>
 <section class="card">
   <h2>Initial supplier prospects</h2>

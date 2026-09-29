@@ -8,3 +8,5 @@ config/payment.php
 config/mail.php
 
 config/courier.php
+
+config/automation.php

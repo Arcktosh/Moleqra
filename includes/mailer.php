@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/commerce.php';
+require_once __DIR__ . '/bootstrap.php';
 
 function mail_config(): array
 {
@@ -41,6 +41,7 @@ function mailer_send(PDO $pdo,string $type,string $recipient,string $subject,str
 
 function mailer_layout(string $title,string $body): string
 {
-    $site=e((string)config('site_name','Moleqra'));
-    return '<!doctype html><html><body style="margin:0;background:#f4f6f8;font-family:Arial,sans-serif;color:#17202a"><div style="max-width:680px;margin:0 auto;padding:28px"><div style="background:#0b1020;color:#fff;padding:20px 24px;font-weight:700;letter-spacing:.08em">'.$site.'</div><div style="background:#fff;padding:26px;border:1px solid #dde3ea"><h1 style="font-size:24px;margin:0 0 18px">'.e($title).'</h1>'.$body.'<p style="margin-top:28px;color:#65717e;font-size:13px">Research-use-only materials are not for human or veterinary administration.</p></div></div></body></html>';
+    $site=e((string)config('site_name','Moleqra'));$brand=branding_settings();$logo=branding_logo_path();$logoHtml='';
+    $base=rtrim((string)config('base_url',''),'/');if($logo!==''&&$base!=='')$logoHtml='<img src="'.e($base.'/'.ltrim($logo,'/')).'" alt="" style="display:block;max-height:46px;max-width:180px;margin-bottom:12px">';
+    return '<!doctype html><html><body style="margin:0;background:#f4f6f8;font-family:Arial,sans-serif;color:#17202a"><div style="max-width:680px;margin:0 auto;padding:28px"><div style="background:'.e($brand['background_color']).';color:'.e($brand['text_color']).';padding:20px 24px;font-weight:700;letter-spacing:.08em">'.$logoHtml.$site.'</div><div style="background:#fff;padding:26px;border:1px solid #dde3ea"><h1 style="font-size:24px;margin:0 0 18px;color:#17202a">'.e($title).'</h1>'.$body.'<p style="margin-top:28px;color:#65717e;font-size:13px">Research-use-only materials are not for human or veterinary administration.</p></div></div></body></html>';
 }

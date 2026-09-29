@@ -45,3 +45,6 @@ function nav_active(string $page): string
     $current = basename($_SERVER['PHP_SELF'] ?? 'index.php');
     return $current === $page ? ' aria-current="page" class="active"' : '';
 }
+
+require_once __DIR__ . '/branding.php';
+branding_apply_config_overrides();
