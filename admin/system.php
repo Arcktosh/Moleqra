@@ -13,6 +13,8 @@ require_once __DIR__ . '/../includes/storefront.php';
 require_once __DIR__ . '/../includes/audit.php';
 require_once __DIR__ . '/../includes/outreach_automation.php';
 require_once __DIR__ . '/../includes/branding.php';
+require_once __DIR__ . '/../includes/newsletter.php';
+require_once __DIR__ . '/../includes/community.php';
 
 $pdo = db();
 $error = '';
@@ -117,6 +119,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 run_sql_file($pdo, __DIR__ . '/../database/migrations-009-campaign-preview-editing.sql');
                 admin_audit($pdo, 'system.upgrade', 'database', 'v9.2', 'Applied campaign preview/editing migration');
                 $message = 'Campaign-specific subject/body snapshots, preview and safe scheduled-campaign editing are ready.';
+            } elseif ($action === 'upgrade_newsletter_community') {
+                if (!outreach_campaign_edit_schema_ready($pdo)) {
+                    throw new RuntimeException('Run the V9.2 campaign preview/editing upgrade first.');
+                }
+                run_sql_file($pdo, __DIR__ . '/../database/migrations-010-newsletter-community.sql');
+                admin_audit($pdo, 'system.upgrade', 'database', 'v10', 'Applied newsletter and community migration');
+                $message = 'Newsletter subscriptions, campaigns, product/community topics and moderation controls are ready.';
             } elseif ($action === 'seed_suppliers') {
                 run_sql_file($pdo, __DIR__ . '/../database/seed-supplier-prospects.sql');
                 admin_audit($pdo, 'system.seed', 'suppliers', null, 'Seeded supplier prospects');
@@ -137,6 +146,7 @@ $commercialOpsReady = commercial_ops_schema_ready($pdo);
 $storefrontReady = storefront_schema_ready($pdo);
 $v9Ready = $pdo && branding_schema_ready($pdo) && outreach_schema_ready($pdo) && db_table_exists('order_status_events',$pdo);
 $campaignEditingReady = $pdo && outreach_campaign_edit_schema_ready($pdo);
+$communityReady = $pdo && newsletter_schema_ready($pdo) && community_schema_ready($pdo);
 $supplierCount = 0;
 if ($pdo && db_table_exists('suppliers', $pdo)) {
     $supplierCount = (int)$pdo->query('SELECT COUNT(*) FROM suppliers')->fetchColumn();
@@ -214,6 +224,14 @@ if ($pdo && db_table_exists('suppliers', $pdo)) {
   <?php if (!$campaignEditingReady): ?>
   <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_campaign_editing"><button class="btn primary" type="submit" <?= $v9Ready ? '' : 'disabled' ?>>Run campaign preview/editing upgrade</button></form>
   <?php else: ?><p><a href="outreach.php">Open campaign preview &amp; editing</a></p><?php endif; ?>
+</section>
+<section class="card">
+  <h2>V10 newsletter &amp; research community</h2>
+  <p class="muted">Adds confirmation-based newsletter subscriptions/campaigns plus moderated customer research discussions, product-linked topics, spam scoring and forum-only customer restrictions.</p>
+  <p><strong>Status:</strong> <?= $communityReady ? 'Ready' : 'Upgrade required' ?></p>
+  <?php if (!$communityReady): ?>
+  <form method="post"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="upgrade_newsletter_community"><button class="btn primary" type="submit" <?= $campaignEditingReady ? '' : 'disabled' ?>>Run newsletter &amp; community upgrade</button></form>
+  <?php else: ?><p><a href="newsletter.php">Newsletter</a> · <a href="community.php">Community moderation</a></p><?php endif; ?>
 </section>
 <section class="card">
   <h2>Initial supplier prospects</h2>
