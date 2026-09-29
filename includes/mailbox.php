@@ -112,10 +112,10 @@ function mailbox_sync(PDO $pdo): array
             try{
                 $msgNo=imap_msgno($imap,$uid);if(!$msgNo){$skipped++;continue;}
                 $header=imap_headerinfo($imap,$msgNo);if(!$header){$failed++;continue;}
-                $messageId=trim((string)($header->message_id??''));if($messageId!==''){
-                    $s=$pdo->prepare('SELECT COUNT(*) FROM communication_messages WHERE external_message_id=:id');$s->execute(['id'=>$messageId]);
-                    if((int)$s->fetchColumn()>0){$skipped++;continue;}
-                }
+                $messageId=trim((string)($header->message_id??''));
+                if($messageId==='')$messageId='imap:'.hash('sha256',$cfg['host'].'|'.$cfg['folder'].'|'.(string)$uid);
+                $s=$pdo->prepare('SELECT COUNT(*) FROM communication_messages WHERE external_message_id=:id');$s->execute(['id'=>$messageId]);
+                if((int)$s->fetchColumn()>0){$skipped++;continue;}
                 $from=mailbox_address($header->from[0]??null);if(!filter_var($from,FILTER_VALIDATE_EMAIL)){$skipped++;continue;}
                 $subject=mailbox_decode_header((string)($header->subject??'Inbound email'));
                 $structure=imap_fetchstructure($imap,$msgNo);$body=$structure?mailbox_part_text($imap,$msgNo,$structure):trim((string)imap_body($imap,$msgNo,FT_PEEK));
@@ -123,7 +123,7 @@ function mailbox_sync(PDO $pdo): array
                 $thread=mailbox_thread_for_inbound($pdo,$from,$subject);
                 communication_add_message($pdo,$thread,[
                     'direction'=>'Inbound','channel'=>'Email','sender_email'=>$from,'recipient_email'=>$cfg['username'],'subject'=>$subject,
-                    'body_text'=>$body,'transport'=>'imap','status'=>'Received','external_message_id'=>$messageId?:null,
+                    'body_text'=>$body,'transport'=>'imap','status'=>'Received','external_message_id'=>$messageId,
                     'in_reply_to'=>trim((string)($header->in_reply_to??''))?:null,
                     'received_at'=>!empty($header->udate)?date('Y-m-d H:i:s',(int)$header->udate):date('Y-m-d H:i:s')
                 ]);
