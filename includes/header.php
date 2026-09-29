@@ -54,6 +54,7 @@ $documentTitle=site_seo_title((string)$pageTitle);$ogImage=site_seo_og_image_url
             <a href="<?= e($rootPrefix) ?>coa.php"<?= nav_active('coa.php') ?>>COA Library</a>
             <a href="<?= e($rootPrefix) ?>suppliers.php"<?= nav_active('suppliers.php') ?>>Suppliers</a>
             <a href="<?= e($rootPrefix) ?>about.php"<?= nav_active('about.php') ?>>About</a>
+            <a href="<?= e($rootPrefix) ?>community.php"<?= nav_active('community.php') ?>>Community</a>
             <a href="<?= e($rootPrefix) ?>account/<?= !empty($_SESSION['customer_id']) ? 'index.php' : 'login.php' ?>">Account</a>
             <a href="<?= e($rootPrefix) ?>cart.php">Cart<?php if (commerce_cart_count() > 0): ?> <span class="cart-badge"><?= e((string)commerce_cart_count()) ?></span><?php endif; ?></a>
             <a class="nav-cta" href="<?= e($rootPrefix) ?>contact.php"<?= nav_active('contact.php') ?>>Contact</a>
