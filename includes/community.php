@@ -30,7 +30,9 @@ function community_content_violation(string $text): ?string
     $patterns=[
       '/\bhttps?:\/\/\S+/i'=>'External links are not allowed.',
       '/\bwww\.\S+/i'=>'External links are not allowed.',
+      '/\b(?:[a-z0-9-]+\.)+(?:com|net|org|io|co\.za|za|info|biz|me|app|dev|shop|store|site|online)\b/i'=>'External links are not allowed.',
       '/\b[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}\b/i'=>'Email addresses are not allowed.',
+      '/@/'=>'Email/contact handles are not allowed.',
       '/(?:\+?\d[\d\s().-]{7,}\d)/'=>'Phone or contact numbers are not allowed.',
       '/\b(?:whatsapp|telegram|signal|discord|instagram|facebook|tiktok|wechat|email me|contact me|dm me|message me)\b/i'=>'Off-platform contact sharing is not allowed.',
       '/\b(?:dose|dosage|inject|injection|subcutaneous|intramuscular|take\s+\d|mg\s*(?:daily|weekly|per)|iu\s*(?:daily|weekly|per))\b/i'=>'Dosing, administration, or human-use instructions are not allowed in the research forum.',
@@ -65,8 +67,8 @@ function community_slug(string $title): string
 function community_product_topic(PDO $pdo,int $productId,string $productName): int
 {
     $s=$pdo->prepare('SELECT id FROM forum_topics WHERE product_id=:id LIMIT 1');$s->execute(['id'=>$productId]);$id=(int)$s->fetchColumn();if($id)return $id;
-    $pdo->prepare("INSERT INTO forum_topics(product_id,title,slug,status,is_product_topic,last_post_at) VALUES(:product,:title,:slug,'Open',1,NOW())")->execute(['product'=>$productId,'title'=>$productName.' research discussion','slug'=>community_slug($productName.' research discussion')]);
-    return (int)$pdo->lastInsertId();
+    $pdo->prepare("INSERT IGNORE INTO forum_topics(product_id,title,slug,status,is_product_topic,last_post_at) VALUES(:product,:title,:slug,'Open',1,NOW())")->execute(['product'=>$productId,'title'=>$productName.' research discussion','slug'=>community_slug($productName.' research discussion')]);
+    $s=$pdo->prepare('SELECT id FROM forum_topics WHERE product_id=:id LIMIT 1');$s->execute(['id'=>$productId]);return (int)$s->fetchColumn();
 }
 
 function community_create_topic(PDO $pdo,int $customerId,string $title,string $body): int
