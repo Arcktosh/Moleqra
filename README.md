@@ -407,34 +407,67 @@ Capabilities include:
 - transactional customer emails sent through the existing mailer are mirrored into customer history when a customer account is known;
 - each thread stores inbound/outbound direction, channel, subject, full message content, transport state, timestamps and the administrator responsible for manual sends;
 - staff can manually capture inbound phone, WhatsApp, email or other offline communication notes;
-- optional IMAP mailbox synchronization imports incoming business-mailbox messages and associates them with the best matching open customer/supplier/contact thread;
-- incoming IMAP bodies are stored/displayed as plain text; raw inbound HTML is not rendered in admin;
-- mailbox messages are deduplicated by external Message-ID when available;
+- optional native POP3 mailbox synchronization imports incoming business-mailbox messages and associates them with the best matching open customer/supplier/contact thread;
+- incoming POP3 bodies are stored/displayed as plain text; raw inbound HTML is not rendered in admin;
+- mailbox messages are deduplicated using POP3 UIDL values;
 - communication threads can be Open, Waiting or Closed.
 
-### Inbound mailbox configuration
+### Mail configuration for the current shared host
 
-The outbound SMTP and optional inbound mailbox settings live together in `config/mail.php`. Copy the new `inbound` section from `config/mail.example.php` and configure the business mailbox used to receive replies.
+The current hosting profile uses:
 
-Typical secure IMAP settings are:
+- outbound SMTP: port **25**;
+- inbound POP3: port **110**;
+- no IMAP dependency.
+
+A matching `config/mail.php` configuration is:
 
 ```php
-'inbound' => [
+return [
     'enabled' => true,
-    'host' => 'mail.example.com',
-    'port' => 993,
-    'encryption' => 'ssl',
-    'username' => 'support@example.com',
-    'password' => 'mailbox-password',
-    'folder' => 'INBOX',
-    'validate_cert' => true,
-    'max_messages' => 50,
-],
+    'transport' => 'smtp',
+
+    'from_email' => 'support@example.com',
+    'from_name' => 'Moleqra',
+    'reply_to' => 'support@example.com',
+
+    'smtp' => [
+        'host' => 'mail.example.com',
+        'port' => 25,
+        'encryption' => 'none',
+        'auth' => true,
+        'auth_mode' => 'auto',
+        'username' => 'support@example.com',
+        'password' => 'mailbox-password',
+        'timeout' => 15,
+        'verify_peer' => true,
+        'verify_peer_name' => true,
+        'allow_self_signed' => false,
+        'helo_name' => '',
+    ],
+
+    'inbound' => [
+        'enabled' => true,
+        'protocol' => 'pop3',
+        'host' => 'mail.example.com',
+        'port' => 110,
+        'encryption' => 'none',
+        'username' => 'support@example.com',
+        'password' => 'mailbox-password',
+        'timeout' => 15,
+        'verify_peer' => true,
+        'verify_peer_name' => true,
+        'allow_self_signed' => false,
+        'max_messages' => 50,
+    ],
+];
 ```
 
-Inbound sync requires PHP's **IMAP extension** on the hosting server. If it is unavailable, website enquiries, outbound history and manual inbound capture continue to work; only automatic mailbox import is unavailable.
+If the hosting provider requires STARTTLS on either port, change that connection's `encryption` value from `none` to `tls`. Use `ssl` only for an implicit TLS port supplied by the hosting provider.
 
-Use **Admin → Diagnostics → Test IMAP connection** to verify the mailbox. **Admin → Communications → Sync mailbox** performs an immediate import.
+POP3 is implemented directly over PHP stream sockets, so the PHP IMAP extension is not required.
+
+Use **Admin → Diagnostics → Test SMTP connection** for outbound delivery and **Test POP3 connection** for inbound mailbox access. **Admin → Communications → Sync mailbox** performs an immediate POP3 import.
 
 Optional CLI scheduling:
 
@@ -448,7 +481,7 @@ For authenticated HTTPS scheduling, set `mailbox_key` in `config/automation.php`
 Authorization: Bearer <mailbox_key>
 ```
 
-No persistent mail listener or queue worker is required.
+POP3 retrieval is non-destructive: Moleqra uses `RETR` and does not issue `DELE`, so synchronization does not remove mail from the server. No persistent mail listener or queue worker is required.
 
 ### Fresh database sequence
 
