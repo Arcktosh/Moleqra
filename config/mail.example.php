@@ -42,4 +42,25 @@ return [
         // Optional. Leave blank to use the hosting machine hostname.
         'helo_name' => '',
     ],
+
+    // Optional inbound mailbox capture for the Communications back office.
+    // Requires the PHP IMAP extension on the hosting server.
+    'inbound' => [
+        'enabled' => false,
+        'host' => 'mail.example.com',
+        'port' => 993,
+
+        // ssl | tls | none
+        'encryption' => 'ssl',
+
+        'username' => 'support@example.com',
+        'password' => 'replace-with-hosting-mailbox-password',
+        'folder' => 'INBOX',
+
+        // Keep certificate validation enabled in production.
+        'validate_cert' => true,
+
+        // Maximum recent messages inspected during each sync.
+        'max_messages' => 50,
+    ],
 ];
