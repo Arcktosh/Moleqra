@@ -66,8 +66,12 @@ function smtp_expect($stream,array $codes,string $context): array
 
 function smtp_write($stream,string $line): void
 {
-    $written=fwrite($stream,$line."\r\n");
-    if($written===false)throw new RuntimeException('SMTP connection write failed.');
+    $payload=$line."\r\n";$length=strlen($payload);$offset=0;
+    while($offset<$length){
+        $written=fwrite($stream,substr($payload,$offset));
+        if($written===false||$written===0)throw new RuntimeException('SMTP connection write failed.');
+        $offset+=$written;
+    }
 }
 
 function smtp_command($stream,string $command,array $codes,string $context): array
@@ -114,7 +118,8 @@ function smtp_open(array $mailConfig): array
     try{
         smtp_expect($stream,[220],'SMTP greeting');
         $helo=$cfg['helo_name']!==''?$cfg['helo_name']:(gethostname()?:'localhost');
-        $ehlo=smtp_command($stream,'EHLO '.preg_replace('/[^A-Za-z0-9.\-]/','',$helo),[250],'EHLO');
+        $helo=preg_replace('/[^A-Za-z0-9.\-]/','',$helo)?:'localhost';
+        $ehlo=smtp_command($stream,'EHLO '.$helo,[250],'EHLO');
         $caps=smtp_capabilities($ehlo);
 
         if($cfg['encryption']==='tls'){
@@ -122,7 +127,7 @@ function smtp_open(array $mailConfig): array
             smtp_command($stream,'STARTTLS',[220],'STARTTLS');
             $crypto=@stream_socket_enable_crypto($stream,true,STREAM_CRYPTO_METHOD_TLS_CLIENT);
             if($crypto!==true)throw new RuntimeException('SMTP TLS negotiation failed.');
-            $ehlo=smtp_command($stream,'EHLO '.preg_replace('/[^A-Za-z0-9.\-]/','',$helo),[250],'EHLO after STARTTLS');
+            $ehlo=smtp_command($stream,'EHLO '.$helo,[250],'EHLO after STARTTLS');
             $caps=smtp_capabilities($ehlo);
         }
 
