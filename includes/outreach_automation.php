@@ -189,6 +189,14 @@ function outreach_process_campaign(PDO $pdo,int $campaignId,?int $requestedLimit
             $html=mailer_layout('Partnership enquiry',(string)$row['body_html']);
             $ok=mailer_send($pdo,'supplier_outreach_'.$campaignId.'_'.(int)$row['supplier_id'],(string)$row['recipient'],(string)$row['subject'],$html,null,null);
             if(!$ok)throw new RuntimeException('Mail transport returned failure.');
+            if(function_exists('communications_schema_ready') && communications_schema_ready($pdo)){
+                communication_record_outbound($pdo,(string)$row['recipient'],(string)$row['subject'],$html,[
+                    'supplier_id'=>(int)$row['supplier_id'],
+                    'contact_name'=>(string)($row['contact_name']?:$row['name']),
+                    'source'=>'Supplier outreach',
+                    'status'=>'Sent'
+                ]);
+            }
             $pdo->prepare("UPDATE supplier_outreach_queue SET status='Sent',last_error=NULL,sent_at=NOW() WHERE id=:id")->execute(['id'=>$row['id']]);
             try{
                 $pdo->beginTransaction();
