@@ -334,3 +334,56 @@ For a new database apply, in order:
 8. `database/migrations-008-automation-branding-seo.sql`
 
 V9 remains compatible with ordinary shared-hosting PHP + MySQL. There is no Node runtime, npm build, persistent daemon, Redis instance, queue worker or service restart requirement.
+
+## V10 newsletter and research community
+
+V10 adds an optional customer-retention and moderated community layer without changing the existing commerce, inventory or payment model. Existing V9.2 installations can run **Admin → System → V10 newsletter & research community**, or import `database/migrations-010-newsletter-community.sql` after migration 009.
+
+Capabilities include:
+
+- website newsletter subscription form available from the public footer;
+- confirmation-based newsletter subscriptions when outbound mail and the public base URL are configured;
+- one-click unsubscribe links in newsletter campaigns;
+- separate newsletter campaigns with subject/body editing, live preview, scheduling and batch sending;
+- optional CLI/HTTPS processing through `automation/newsletter.php`;
+- public research-community index and topic pages;
+- automatic discussion topic for each public product;
+- logged-in customers can create general topics and reply to open topics;
+- public forum identities use generated member labels rather than exposing customer email/phone data;
+- server-side rejection of external URLs/domains, email addresses, phone/contact details and off-platform contact requests;
+- explicit rejection of dosing, administration and human-use instructions;
+- posting rate limits plus spam scoring and automatic forum suspension after repeated rejected submissions;
+- admin controls to hide/restore posts, open/close/hide topics, and suspend/block/unblock forum access without disabling the customer's commerce account;
+- community pages default to `noindex` while the feature matures.
+
+### Newsletter automation
+
+Configure outbound mail first. Newsletter automation refuses to send unless mail delivery and the public `base_url` are configured.
+
+CLI scheduling:
+
+```bash
+php /absolute/path/to/automation/newsletter.php
+```
+
+For HTTPS scheduling, set a separate `newsletter_key` in `config/automation.php` and call `/automation/newsletter.php` with:
+
+```text
+Authorization: Bearer <newsletter_key>
+```
+
+Only newsletter campaigns in `Running` state are processed. Subscriber re-activation is not available as an admin shortcut; a previously unsubscribed recipient must use the public subscription/confirmation flow again.
+
+### Community scope
+
+The forum is intended for laboratory, analytical, documentation and research discussion. It is not a channel for medical advice, treatment claims, personal-use reports, dosing, administration guidance, sales outside Moleqra, or exchange of private contact details. Moderation controls are intentionally independent from customer ordering/account status.
+
+### Fresh database sequence
+
+For a new database, apply the existing migrations in order through:
+
+9. `database/migrations-009-campaign-preview-editing.sql`
+10. `database/migrations-010-newsletter-community.sql`
+
+V10 remains compatible with ordinary shared-hosting PHP + MySQL. No Node runtime, persistent worker, Redis service or daemon is required; scheduled newsletter delivery is optional and may use cron or an authenticated HTTPS call.
+
