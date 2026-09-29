@@ -83,6 +83,19 @@ function mailbox_thread_for_inbound(PDO $pdo,string $email,string $subject): int
     ]);
 }
 
+function mailbox_probe(): array
+{
+    $started=microtime(true);
+    if(!function_exists('imap_open'))return ['ok'=>false,'detail'=>'PHP IMAP extension is not available on this host.','elapsed_ms'=>0];
+    $cfg=mailbox_config();
+    if(!$cfg['enabled'])return ['ok'=>false,'detail'=>'Inbound mailbox sync is disabled in config/mail.php.','elapsed_ms'=>0];
+    if($cfg['host']===''||$cfg['username']===''||$cfg['password']==='')return ['ok'=>false,'detail'=>'Inbound mailbox credentials are incomplete.','elapsed_ms'=>0];
+    $imap=@imap_open(mailbox_imap_string($cfg),$cfg['username'],$cfg['password'],OP_READONLY);
+    if(!$imap)return ['ok'=>false,'detail'=>'IMAP connection failed: '.(imap_last_error()?:'unknown error'),'elapsed_ms'=>(int)round((microtime(true)-$started)*1000)];
+    $count=(int)imap_num_msg($imap);@imap_close($imap);
+    return ['ok'=>true,'detail'=>'Connected to '.$cfg['host'].':'.$cfg['port'].' · '.$cfg['folder'].' · '.$count.' message'.($count===1?'':'s').' currently in folder.','elapsed_ms'=>(int)round((microtime(true)-$started)*1000)];
+}
+
 function mailbox_sync(PDO $pdo): array
 {
     if(!communications_schema_ready($pdo))throw new RuntimeException('Communications database upgrade is not installed.');
