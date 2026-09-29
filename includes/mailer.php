@@ -3,10 +3,24 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/smtp.php';
 
 function mail_config(): array
 {
     static $cfg=null;if($cfg!==null)return $cfg;$file=__DIR__.'/../config/mail.php';$cfg=is_file($file)?(require $file):[];return is_array($cfg)?$cfg:[];
+}
+
+function mailer_delivery_ready(): bool
+{
+    $cfg=mail_config();
+    if(empty($cfg['enabled']))return false;
+    $transport=strtolower(trim((string)($cfg['transport']??'log')));
+    if($transport==='mail')return true;
+    if($transport==='smtp'){
+        $smtp=smtp_config($cfg);
+        return $smtp['host']!=='' && (!$smtp['auth'] || (trim($smtp['username'])!=='' && $smtp['password']!==''));
+    }
+    return false;
 }
 
 function mailer_schema_ready(?PDO $pdo = null): bool
@@ -24,18 +38,27 @@ function mailer_send(PDO $pdo,string $type,string $recipient,string $subject,str
         $stmt->execute(['order_id'=>$orderId,'customer_id'=>$customerId,'type'=>$type,'recipient'=>$recipient,'subject'=>$subject,'transport'=>$transport,'status'=>$status]);$id=(int)$pdo->lastInsertId();
     }
     if(!$enabled || $transport==='log')return true;
-    if($transport!=='mail'){
-        if($id)$pdo->prepare("UPDATE commerce_notifications SET status='Failed',error_message='Unsupported mail transport.' WHERE id=:id")->execute(['id'=>$id]);
-        return false;
-    }
     $fromEmail=trim((string)($cfg['from_email']??config('contact_email','')));$fromName=trim((string)($cfg['from_name']??config('site_name','Moleqra')));$reply=trim((string)($cfg['reply_to']??''));
     if(!filter_var($recipient,FILTER_VALIDATE_EMAIL)||!filter_var($fromEmail,FILTER_VALIDATE_EMAIL)){
         if($id)$pdo->prepare("UPDATE commerce_notifications SET status='Failed',error_message='Mail addresses are not configured.' WHERE id=:id")->execute(['id'=>$id]);
         return false;
     }
-    $headers=['MIME-Version: 1.0','Content-Type: text/html; charset=UTF-8','From: '.$fromName.' <'.$fromEmail.'>'];if(filter_var($reply,FILTER_VALIDATE_EMAIL))$headers[]='Reply-To: '.$reply;
-    $ok=@mail($recipient,$subject,$html,implode("\r\n",$headers));
-    if($id)$pdo->prepare("UPDATE commerce_notifications SET status=:status,error_message=:error,sent_at=CASE WHEN :ok=1 THEN NOW() ELSE sent_at END WHERE id=:id")->execute(['status'=>$ok?'Sent':'Failed','error'=>$ok?null:'PHP mail() returned false.','ok'=>$ok?1:0,'id'=>$id]);
+    $ok=false;$error=null;
+    try{
+        if($transport==='mail'){
+            $headers=['MIME-Version: 1.0','Content-Type: text/html; charset=UTF-8','From: '.$fromName.' <'.$fromEmail.'>'];if(filter_var($reply,FILTER_VALIDATE_EMAIL))$headers[]='Reply-To: '.$reply;
+            $ok=@mail($recipient,$subject,$html,implode("\r\n",$headers));
+            if(!$ok)$error='PHP mail() returned false.';
+        }elseif($transport==='smtp'){
+            smtp_send($cfg,$recipient,$subject,$html,$fromEmail,$fromName,$reply);
+            $ok=true;
+        }else{
+            $error='Unsupported mail transport.';
+        }
+    }catch(Throwable $e){
+        $error=$e->getMessage();$ok=false;error_log('Moleqra mail delivery failed: '.$error);
+    }
+    if($id)$pdo->prepare("UPDATE commerce_notifications SET status=:status,error_message=:error,sent_at=CASE WHEN :ok=1 THEN NOW() ELSE sent_at END WHERE id=:id")->execute(['status'=>$ok?'Sent':'Failed','error'=>$ok?null:substr((string)$error,0,1000),'ok'=>$ok?1:0,'id'=>$id]);
     return $ok;
 }
 
