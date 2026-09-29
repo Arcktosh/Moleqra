@@ -128,3 +128,22 @@ input:focus, select:focus, textarea:focus { outline: 2px solid color-mix(in srgb
   .data-table th, .data-table td { padding: .7rem .55rem; }
 }
 .brand-logo{display:block;width:42px;height:42px;object-fit:contain;border-radius:10px}.footer-brand .brand-logo{width:44px;height:44px}.brand-word{white-space:nowrap}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.newsletter-strip{border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface) 88%,var(--bg));padding:2.4rem 0}
+.newsletter-strip-inner{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:2rem;align-items:end}
+.newsletter-strip h2{font-size:clamp(1.6rem,3vw,2.4rem);margin-bottom:.4rem}
+.newsletter-form{display:flex;gap:.7rem;align-items:center}
+.newsletter-form input[type=email]{min-width:0}
+.newsletter-honeypot{position:absolute;left:-10000px;width:1px;height:1px;overflow:hidden}
+.community-layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(300px,.55fr);gap:1rem;align-items:start}
+.community-compose{position:sticky;top:96px}
+.topic-list{display:grid;gap:.7rem}
+.topic-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.1rem;border:1px solid var(--line);background:var(--surface);border-radius:14px}
+.topic-row:hover{border-color:color-mix(in srgb,var(--accent) 42%,var(--line));transform:translateY(-1px)}
+.topic-row>div{display:grid;gap:.18rem}.topic-row span{color:var(--muted);font-size:.84rem}
+.forum-rules{margin-bottom:1rem}.forum-posts{display:grid;gap:.8rem}.forum-post{padding:1.2rem;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.forum-post header{display:flex;justify-content:space-between;gap:1rem;margin-bottom:.7rem;color:var(--muted);font-size:.82rem}.forum-post header strong{color:var(--accent);letter-spacing:.04em}
+.forum-post p{margin:0;color:#d5dfeb;white-space:normal;overflow-wrap:anywhere}.forum-reply{margin-top:1rem}.product-community-link{margin-top:1.25rem;padding-top:1.15rem;border-top:1px solid var(--line)}
+.narrow{width:min(calc(100% - 2rem),820px);margin-inline:auto}
+@media(max-width:860px){.newsletter-strip-inner,.community-layout{grid-template-columns:1fr}.newsletter-form{align-items:stretch}.community-compose{position:static}}
+@media(max-width:620px){.newsletter-form{flex-direction:column}.newsletter-form .btn{width:100%}.topic-row{align-items:flex-start;flex-direction:column}.forum-post header{flex-direction:column;gap:.2rem}}
