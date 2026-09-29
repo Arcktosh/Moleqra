@@ -393,3 +393,66 @@ For a new database, apply the existing migrations in order through:
 
 V10 remains compatible with ordinary shared-hosting PHP + MySQL. No Node runtime, persistent worker, Redis service or daemon is required; scheduled newsletter delivery is optional and may use cron or an authenticated HTTPS call.
 
+## V11 communications center
+
+V11 unifies customer, supplier and website-enquiry communication in the back office. Existing V10 installations can run **Admin → System → V11 communications center**, or import `database/migrations-011-communications-center.sql` after migration 010.
+
+Capabilities include:
+
+- website contact-form submissions automatically become communication threads when V11 is installed;
+- staff can read the original enquiry and reply by email directly from the back office;
+- registered customer records link to their recent communication history and a pre-filled compose screen;
+- supplier records link to supplier communication history and direct compose;
+- automated supplier outreach is mirrored into supplier communication history;
+- transactional customer emails sent through the existing mailer are mirrored into customer history when a customer account is known;
+- each thread stores inbound/outbound direction, channel, subject, full message content, transport state, timestamps and the administrator responsible for manual sends;
+- staff can manually capture inbound phone, WhatsApp, email or other offline communication notes;
+- optional IMAP mailbox synchronization imports incoming business-mailbox messages and associates them with the best matching open customer/supplier/contact thread;
+- incoming IMAP bodies are stored/displayed as plain text; raw inbound HTML is not rendered in admin;
+- mailbox messages are deduplicated by external Message-ID when available;
+- communication threads can be Open, Waiting or Closed.
+
+### Inbound mailbox configuration
+
+The outbound SMTP and optional inbound mailbox settings live together in `config/mail.php`. Copy the new `inbound` section from `config/mail.example.php` and configure the business mailbox used to receive replies.
+
+Typical secure IMAP settings are:
+
+```php
+'inbound' => [
+    'enabled' => true,
+    'host' => 'mail.example.com',
+    'port' => 993,
+    'encryption' => 'ssl',
+    'username' => 'support@example.com',
+    'password' => 'mailbox-password',
+    'folder' => 'INBOX',
+    'validate_cert' => true,
+    'max_messages' => 50,
+],
+```
+
+Inbound sync requires PHP's **IMAP extension** on the hosting server. If it is unavailable, website enquiries, outbound history and manual inbound capture continue to work; only automatic mailbox import is unavailable.
+
+Use **Admin → Diagnostics → Test IMAP connection** to verify the mailbox. **Admin → Communications → Sync mailbox** performs an immediate import.
+
+Optional CLI scheduling:
+
+```bash
+php /absolute/path/to/automation/mailbox.php
+```
+
+For authenticated HTTPS scheduling, set `mailbox_key` in `config/automation.php` and call `/automation/mailbox.php` with:
+
+```text
+Authorization: Bearer <mailbox_key>
+```
+
+No persistent mail listener or queue worker is required.
+
+### Fresh database sequence
+
+For a new database continue the existing migration chain with:
+
+11. `database/migrations-011-communications-center.sql`
+
