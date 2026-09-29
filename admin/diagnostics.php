@@ -12,7 +12,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
                 $probe=smtp_probe($cfg);
                 if(!$probe['ok'])throw new RuntimeException($probe['detail']);
                 $mailTestMessage=$probe['detail'].' Connection time: '.(int)$probe['elapsed_ms'].' ms.';
-            }elseif($action==='imap_probe'){
+            }elseif($action==='pop3_probe'){
                 $probe=mailbox_probe();
                 if(!$probe['ok'])throw new RuntimeException($probe['detail']);
                 $mailTestMessage=$probe['detail'].' Connection time: '.(int)$probe['elapsed_ms'].' ms.';
@@ -45,8 +45,8 @@ $result=technical_launch_diagnostics($pdo);
     </form>
     <form method="post">
       <input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>">
-      <input type="hidden" name="action" value="imap_probe">
-      <button class="btn" type="submit">Test IMAP connection</button>
+      <input type="hidden" name="action" value="pop3_probe">
+      <button class="btn" type="submit">Test POP3 connection</button>
     </form>
     <form method="post" class="inline-select">
       <input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>">
