@@ -43,12 +43,12 @@ $brand=branding_settings($pdo);$seo=site_seo_settings($pdo);
 <?php if(isset($_GET['saved'])):?><div class="alert success"><?= $_GET['saved']==='seo'?'SEO and robots settings saved.':'Brand settings saved.' ?></div><?php endif;?><?php if($message):?><div class="alert success"><?=e($message)?></div><?php endif;?><?php if($error):?><div class="alert error"><?=e($error)?></div><?php endif;?>
 <?php if(!$pdo||!branding_schema_ready($pdo)):?><div class="alert error">V9 settings are not installed. Run the upgrade from System.</div><?php else:?>
 <div class="admin-two-col">
-<section class="card"><h2>Branding</h2><form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="action" value="save_branding"><div class="form-grid">
-<div class="field full"><label>Site name</label><input name="site_name" maxlength="120" value="<?=e($brand['site_name'])?>"></div>
-<div class="field full"><label>Logo</label><?php if(branding_logo_path()):?><img class="branding-preview" src="../<?=e(branding_logo_path())?>" alt="Current logo"><?php endif;?><input type="file" name="logo" accept="image/png,image/jpeg,image/gif,image/webp"><label class="check-row"><input type="checkbox" name="remove_logo" value="1"> Remove current logo</label></div>
-<?php foreach(['primary_color'=>'Primary / accent','secondary_color'=>'Secondary accent','background_color'=>'Background','surface_color'=>'Surface','surface_alt_color'=>'Alternate surface','text_color'=>'Text','muted_color'=>'Muted text'] as $field=>$label):?><div class="field"><label><?=e($label)?></label><input type="color" name="<?=e($field)?>" value="<?=e($brand[$field])?>"></div><?php endforeach;?>
+<section class="card"><h2>Branding</h2><form method="post" enctype="multipart/form-data" id="branding-form"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="action" value="save_branding"><div class="form-grid">
+<div class="field full"><label>Site name</label><input name="site_name" id="brand-site-name" maxlength="120" value="<?=e($brand['site_name'])?>"></div>
+<div class="field full"><label>Logo</label><?php if(branding_logo_path()):?><img class="branding-preview" id="branding-current-logo" src="<?=e(branding_logo_url('../'))?>" alt="Current logo"><?php endif;?><input type="file" name="logo" id="brand-logo-input" accept="image/png,image/jpeg,image/gif,image/webp"><label class="check-row"><input type="checkbox" name="remove_logo" id="brand-remove-logo" value="1"> Remove current logo</label></div>
+<?php foreach(['primary_color'=>'Primary / accent','secondary_color'=>'Secondary accent','background_color'=>'Background','surface_color'=>'Surface','surface_alt_color'=>'Alternate surface','text_color'=>'Text','muted_color'=>'Muted text'] as $field=>$label):?><div class="field"><label><?=e($label)?></label><input type="color" name="<?=e($field)?>" value="<?=e($brand[$field])?>" data-brand-color="<?=e($field)?>"></div><?php endforeach;?>
 <div class="field full"><button class="btn primary">Save branding</button></div></div></form></section>
-<section class="card brand-live-preview" style="<?=e(branding_css_variables())?>"><h2>Live palette preview</h2><div class="brand-preview-surface"><div class="brand-preview-logo"><?php if(branding_logo_path()):?><img src="../<?=e(branding_logo_path())?>" alt=""><?php else:?><span class="brand-mark">M</span><?php endif;?><strong><?=e(config('site_name','Moleqra'))?></strong></div><p>This preview uses the current saved palette.</p><a class="btn primary" href="#">Primary action</a></div></section>
+<section class="card brand-live-preview" id="brand-live-preview" style="<?=e(branding_css_variables())?>"><h2>Live brand preview</h2><div class="brand-preview-surface"><div class="brand-preview-logo"><img id="brand-preview-image" src="<?=e(branding_logo_url('../'))?>" alt=""<?= branding_logo_path()==='' ? ' hidden' : '' ?>><span class="brand-mark" id="brand-preview-mark"<?= branding_logo_path()!=='' ? ' hidden' : '' ?>>M</span><strong id="brand-preview-name"><?=e(strtoupper((string)$brand['site_name']))?></strong></div><p>Changes below are previewed immediately. Save branding to make them permanent across the site.</p><a class="btn primary" href="#" onclick="return false">Primary action</a></div></section>
 </div>
 <section class="card admin-section-gap"><h2>SEO &amp; robots</h2><form method="post"><input type="hidden" name="csrf_token" value="<?=e(csrf_token())?>"><input type="hidden" name="action" value="save_seo"><div class="form-grid">
 <div class="field"><label>Title suffix</label><input name="title_suffix" maxlength="120" value="<?=e($seo['title_suffix'])?>"></div><div class="field"><label>Organisation name</label><input name="organization_name" maxlength="160" value="<?=e($seo['organization_name'])?>"></div>
@@ -58,4 +58,103 @@ $brand=branding_settings($pdo);$seo=site_seo_settings($pdo);
 <div class="field full"><label class="check-row"><input type="checkbox" name="allow_indexing" value="1"<?=!empty($seo['allow_indexing'])?' checked':''?>> Allow public search-engine indexing</label><label class="check-row"><input type="checkbox" name="sitemap_enabled" value="1"<?=!empty($seo['sitemap_enabled'])?' checked':''?>> Publish sitemap.xml when base URL is configured</label><div class="notice">Keep indexing disabled during development/staging. Enable it only when the public catalogue, legal pages, canonical base URL and product metadata are launch-ready.</div></div>
 <div class="field full"><button class="btn primary">Save SEO settings</button></div></div></form></section>
 <?php endif;?>
+<script>
+(() => {
+  const form = document.getElementById('branding-form');
+  const preview = document.getElementById('brand-live-preview');
+  if (!form || !preview) return;
+
+  const siteName = document.getElementById('brand-site-name');
+  const logoInput = document.getElementById('brand-logo-input');
+  const removeLogo = document.getElementById('brand-remove-logo');
+  const previewImage = document.getElementById('brand-preview-image');
+  const previewMark = document.getElementById('brand-preview-mark');
+  const previewName = document.getElementById('brand-preview-name');
+  const adminBrand = document.querySelector('[data-admin-brand]');
+  const adminWord = document.querySelector('[data-admin-brand-word]');
+  let adminImage = document.querySelector('[data-admin-brand-image]');
+  let adminMark = document.querySelector('[data-admin-brand-mark]');
+  let objectUrl = '';
+  const savedLogo = previewImage ? previewImage.getAttribute('src') : '';
+
+  const colorVars = {
+    primary_color: '--accent',
+    secondary_color: '--accent-2',
+    background_color: '--bg',
+    surface_color: '--surface',
+    surface_alt_color: '--surface-2',
+    text_color: '--text',
+    muted_color: '--muted'
+  };
+
+  function ensureAdminImage() {
+    if (adminImage || !adminBrand) return adminImage;
+    adminImage = document.createElement('img');
+    adminImage.className = 'brand-logo';
+    adminImage.alt = '';
+    adminImage.setAttribute('data-admin-brand-image', '');
+    adminBrand.insertBefore(adminImage, adminWord || adminBrand.firstChild);
+    return adminImage;
+  }
+
+  function ensureAdminMark() {
+    if (adminMark || !adminBrand) return adminMark;
+    adminMark = document.createElement('span');
+    adminMark.className = 'brand-mark';
+    adminMark.textContent = 'M';
+    adminMark.setAttribute('data-admin-brand-mark', '');
+    adminBrand.insertBefore(adminMark, adminWord || adminBrand.firstChild);
+    return adminMark;
+  }
+
+  function setLogo(src, showLogo) {
+    if (previewImage) {
+      previewImage.src = showLogo ? src : '';
+      previewImage.hidden = !showLogo;
+    }
+    if (previewMark) previewMark.hidden = showLogo;
+
+    if (showLogo) {
+      const img = ensureAdminImage();
+      if (img) { img.src = src; img.hidden = false; }
+      if (adminMark) adminMark.hidden = true;
+    } else {
+      if (adminImage) adminImage.hidden = true;
+      const mark = ensureAdminMark();
+      if (mark) mark.hidden = false;
+    }
+  }
+
+  function applyLivePreview() {
+    form.querySelectorAll('[data-brand-color]').forEach(input => {
+      const variable = colorVars[input.dataset.brandColor];
+      if (!variable) return;
+      preview.style.setProperty(variable, input.value);
+      document.documentElement.style.setProperty(variable, input.value);
+    });
+
+    const label = (siteName?.value || 'Moleqra').trim() || 'Moleqra';
+    if (previewName) previewName.textContent = label.toUpperCase();
+    if (adminWord) adminWord.textContent = label.toUpperCase() + ' ADMIN';
+
+    if (removeLogo?.checked) {
+      setLogo('', false);
+      return;
+    }
+    const file = logoInput?.files?.[0];
+    if (file) {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      objectUrl = URL.createObjectURL(file);
+      setLogo(objectUrl, true);
+    } else {
+      setLogo(savedLogo, !!savedLogo);
+    }
+  }
+
+  form.addEventListener('input', applyLivePreview);
+  form.addEventListener('change', applyLivePreview);
+  window.addEventListener('beforeunload', () => { if (objectUrl) URL.revokeObjectURL(objectUrl); });
+  applyLivePreview();
+})();
+</script>
 <?php require __DIR__.'/_footer.php';?>

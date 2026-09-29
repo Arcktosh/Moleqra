@@ -16,8 +16,8 @@ function branding_hex(string $value,string $fallback): string
 
 function branding_settings(?PDO $pdo=null): array
 {
-    static $cache=null;
-    if($cache!==null)return $cache;
+    $cache=$GLOBALS['moleqra_branding_cache']??null;
+    if(is_array($cache))return $cache;
     $defaults=[
         'site_name'=>(string)($GLOBALS['config']['site_name']??'Moleqra'),
         'logo_path'=>null,
@@ -30,14 +30,21 @@ function branding_settings(?PDO $pdo=null): array
     }
     foreach(['primary_color','secondary_color','background_color','surface_color','surface_alt_color','text_color','muted_color'] as $field)$defaults[$field]=branding_hex((string)$defaults[$field],match($field){'primary_color'=>'#63e6be','secondary_color'=>'#8be9fd','background_color'=>'#070b14','surface_color'=>'#0e1526','surface_alt_color'=>'#141d31','text_color'=>'#f4f7fb',default=>'#9aa8bd'});
     if($defaults['logo_path']===null){
-        $latest='assets/1cd54664-3f0a-4fc2-85d2-946ad7341006.png';
-        $packaged='assets/branding/moleqra-logo.png';
-        if(is_file(__DIR__.'/../'.$latest))$defaults['logo_path']=$latest;
-        elseif(is_file(__DIR__.'/../'.$packaged))$defaults['logo_path']=$packaged;
-        else $defaults['logo_path']='';
+        $candidates=[
+            'assets/logo.png',
+            'assets/1cd54664-3f0a-4fc2-85d2-946ad7341006.png',
+            'assets/branding/moleqra-logo.png',
+        ];
+        $defaults['logo_path']='';
+        foreach($candidates as $candidate){
+            if(is_file(__DIR__.'/../'.$candidate)){
+                $defaults['logo_path']=$candidate;
+                break;
+            }
+        }
     }
-    $cache=$defaults;
-    return $cache;
+    $GLOBALS['moleqra_branding_cache']=$defaults;
+    return $defaults;
 }
 
 function branding_apply_config_overrides(): void
@@ -56,7 +63,11 @@ function branding_logo_path(): string
 
 function branding_logo_url(string $rootPrefix=''): string
 {
-    $path=branding_logo_path();return $path!==''?$rootPrefix.$path:'';
+    $path=branding_logo_path();
+    if($path==='')return '';
+    $absolute=__DIR__.'/../'.$path;
+    $version=is_file($absolute)?(string)filemtime($absolute):'';
+    return $rootPrefix.$path.($version!==''?'?v='.rawurlencode($version):'');
 }
 
 function branding_css_variables(): string
@@ -67,5 +78,5 @@ function branding_css_variables(): string
 
 function branding_reset_cache(): void
 {
-    // Request-scoped settings are reloaded on the next request after admin save.
+    unset($GLOBALS['moleqra_branding_cache']);
 }
