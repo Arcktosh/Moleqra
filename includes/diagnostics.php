@@ -11,6 +11,8 @@ require_once __DIR__.'/courier.php';
 require_once __DIR__.'/outreach_automation.php';
 require_once __DIR__.'/branding.php';
 require_once __DIR__.'/site_seo.php';
+require_once __DIR__.'/communications.php';
+require_once __DIR__.'/mailbox.php';
 
 function diagnostic_item(string $label,string $status,string $detail,string $fix=''): array
 {
@@ -26,7 +28,7 @@ function technical_launch_diagnostics(?PDO $pdo=null): array
     $https=!empty($_SERVER['HTTPS'])&&strtolower((string)$_SERVER['HTTPS'])!=='off';$items[]=diagnostic_item('Current request HTTPS',$https?'pass':'warn',$https?'HTTPS detected':'HTTPS not detected for this request','Use HTTPS on staging and production.');
     $items[]=diagnostic_item('Database',$pdo?'pass':'fail',$pdo?'Connected':'Not configured','Configure config/database.php and test the connection.');
     if($pdo){
-        $schemaChecks=[['Supplier operations',sourcing_schema_ready($pdo),'V2'],['Procurement/launch',procurement_schema_ready($pdo),'V4'],['Inventory',inventory_schema_ready($pdo),'V5'],['Commerce',commerce_schema_ready($pdo),'V6'],['Commercial operations',commercial_ops_schema_ready($pdo),'V7'],['Storefront hardening',storefront_schema_ready($pdo),'V8'],['Automation/branding/SEO',branding_schema_ready($pdo)&&outreach_schema_ready($pdo)&&db_table_exists('order_status_events',$pdo),'V9']];
+        $schemaChecks=[['Supplier operations',sourcing_schema_ready($pdo),'V2'],['Procurement/launch',procurement_schema_ready($pdo),'V4'],['Inventory',inventory_schema_ready($pdo),'V5'],['Commerce',commerce_schema_ready($pdo),'V6'],['Commercial operations',commercial_ops_schema_ready($pdo),'V7'],['Storefront hardening',storefront_schema_ready($pdo),'V8'],['Automation/branding/SEO',branding_schema_ready($pdo)&&outreach_schema_ready($pdo)&&db_table_exists('order_status_events',$pdo),'V9'],['Communications center',communications_schema_ready($pdo),'V11']];
         foreach($schemaChecks as [$label,$ok,$version])$items[]=diagnostic_item($label,$ok?'pass':'fail',$ok?'Ready':$version.' upgrade required',$ok?'':'Run the upgrade from System.');
     }
     $storage=__DIR__.'/../storage';$writable=is_dir($storage)&&is_writable($storage);$items[]=diagnostic_item('Protected storage',$writable?'pass':'fail',$writable?'Writable':'Not writable','Make storage writable by PHP and keep direct web access blocked.');
@@ -37,6 +39,8 @@ function technical_launch_diagnostics(?PDO $pdo=null): array
     $mailDetail=$mailEnabled?'Enabled · '.$mailTransport:'Log-only / disabled';
     if($mailEnabled&&$mailTransport==='smtp'){$smtp=smtp_config($mail);$mailDetail.=' · '.($smtp['host']!==''?$smtp['host'].':'.$smtp['port']:'host not configured').' · '.$smtp['encryption'];}
     $items[]=diagnostic_item('Transactional email',$mailDeliverable?'pass':'warn',$mailDetail,$mailDeliverable?'Use the diagnostics mail test before relying on verification, reset, newsletter or order emails.':'Configure and test outbound mail before relying on verification, reset, newsletter or order emails.');
+    $inboundCfg=mailbox_config();$imapAvailable=function_exists('imap_open');$inboundConfigured=!empty($inboundCfg['enabled']);
+    $items[]=diagnostic_item('Inbound mailbox capture',!$inboundConfigured?'warn':($imapAvailable&&mailbox_ready()?'pass':'fail'),$inboundConfigured?($imapAvailable?'Enabled · '.$inboundCfg['host'].':'.$inboundCfg['port'].' · '.$inboundCfg['folder']:'Enabled · PHP IMAP extension missing'):'Disabled / optional',$inboundConfigured&&(!$imapAvailable||!mailbox_ready())?'Enable the PHP IMAP extension and verify inbound mailbox credentials.':'');
     $verificationRequired=(bool)commerce_config('require_verified_email',false);$verificationReady=!$verificationRequired||($baseOk&&$mailDeliverable);$items[]=diagnostic_item('Required email verification',$verificationReady?'pass':'fail',$verificationRequired?($verificationReady?'Required · delivery ready':'Required · dependencies incomplete'):'Optional / not enforced',$verificationReady?'':($baseOk?'Enable a tested outbound mail transport before enforcing verification.':'Configure the final HTTPS base_url and tested outbound mail before enforcing verification.'));
     $brand=branding_settings($pdo);$logo=branding_logo_path();$logoExists=$logo!==''&&is_file(__DIR__.'/../'.$logo);$items[]=diagnostic_item('Brand logo',$logoExists?'pass':'warn',$logoExists?$logo:'No readable logo configured',$logoExists?'':'Upload a logo from Brand & SEO.');
     $seoSettings=site_seo_settings($pdo);$indexing=!empty($seoSettings['allow_indexing']);$items[]=diagnostic_item('Search indexing',$indexing?($baseOk?'pass':'fail'):'warn',$indexing?'Enabled':'Disabled for development',$indexing&& !$baseOk?'Configure the final HTTPS base_url before enabling indexing.':($indexing?'':'Enable indexing only for the public launch.'));
