@@ -34,7 +34,7 @@ function newsletter_subscribe(PDO $pdo,string $email,?int $customerId=null,strin
 
 function newsletter_mail_ready(): bool
 {
-    $cfg=mail_config();return !empty($cfg['enabled']) && strtolower((string)($cfg['transport']??''))==='mail' && rtrim((string)config('base_url',''),'/')!=='';
+    return mailer_delivery_ready() && rtrim((string)config('base_url',''),'/')!=='';
 }
 
 function newsletter_confirm(PDO $pdo,string $token): bool
