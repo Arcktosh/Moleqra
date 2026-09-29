@@ -29,6 +29,7 @@ $user = admin_user();$adminLogo=branding_logo_url('../');
   <a class="<?= $current === 'refunds.php' ? 'active' : '' ?>" href="refunds.php">Refunds</a>
   <a class="<?= $current === 'shipping.php' ? 'active' : '' ?>" href="shipping.php">Shipping</a>
   <a class="<?= $current === 'coa.php' ? 'active' : '' ?>" href="coa.php">COAs</a>
+  <a class="<?= $current === 'communications.php' ? 'active' : '' ?>" href="communications.php">Communications</a>
   <a class="<?= $current === 'enquiries.php' ? 'active' : '' ?>" href="enquiries.php">Enquiries</a>
   <a class="<?= $current === 'exports.php' ? 'active' : '' ?>" href="exports.php">Exports</a>
   <a class="<?= $current === 'diagnostics.php' ? 'active' : '' ?>" href="diagnostics.php">Diagnostics</a>
